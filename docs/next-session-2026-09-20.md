@@ -4,9 +4,9 @@
 
 ## 当前状态
 
-项目已经完成 Electron、React、TypeScript、Vite、Coze Chat V3 流式调用、系统语音、语文课堂 UI、Live2D 模型接入和 Windows 打包基础能力。当前源码和构建产物已完成首次整理，但首次运行仍有两个问题没有解决，明天从这里继续。
+项目已经完成 Electron、React、TypeScript、Vite、Coze Chat V3 流式调用、系统语音、语文课堂 UI、Live2D 模型接入和 Windows 打包基础能力。Live2D 加载问题已修复，Windows 语音听写问题仍待继续排查。
 
-## 问题一：打包程序不显示 Live2D
+## 问题一（已修复）：开发和打包程序不显示 Live2D
 
 复现程序：
 
@@ -20,14 +20,19 @@ D:\code\electron\tutor\release\win-unpacked\语文课堂数字人.exe
 - 错误信息为 `Network error`。
 - 配置中的模型路径是 `assets/avatar/hiyori/Hiyori.model3.json`。
 
+修复结果：
+
+- `src/renderer/index.html` 的 CSP `connect-src` 已加入 `tutor-avatar:`，允许 Live2D 的 XHR 和本地资源协议通信。
+- `pnpm dev` 已验证 Cubism Core 5.1.0 完成初始化，不再出现 CSP 拦截或 `Network error`。
+
 当前已确认：
 
 - Hiyori 模型文件、纹理、物理文件和动作文件均已下载，`.model3.json` 引用的 17 个资源均存在。
 - `assets/avatar/runtime/live2dcubismcore.min.js` 已内置，文件可以读取。
-- 该 Core JS 内部还会按相对路径加载 `_em_module.wasm`，但当前 `assets/avatar/runtime/` 中还没有这个 WASM 文件。
+- 当前 Core JS 虽然包含 `_em_module.wasm` 的加载逻辑，但在 Electron 中已直接完成初始化，当前不需要额外分发 WASM 文件。
 - 主进程使用 `tutor-avatar` 自定义协议将模型和 Core 文件转发给渲染层，当前实现通过 `net.fetch(file://...)` 返回本地文件。
 
-初步判断：优先补齐与官方 Core JS 配套的 `_em_module.wasm`，然后再次验证。如果仍然报网络错误，再将 `tutor-avatar` 协议改为主进程 `readFile` 后构造 `Response`，避免 Windows 下 `file://` 转发失败。
+实际原因：页面 CSP 的 `connect-src` 未允许 `tutor-avatar:`，导致模型 JSON 的 XHR 被浏览器拦截，`pixi-live2d-display` 将状态码 0 包装为 `Network error`。`net.fetch(file://...)` 不是本次故障点，不需要改写协议响应实现。
 
 ## 问题二：Windows 语音听写不可用
 
@@ -65,11 +70,10 @@ src/main/speech/windows-speech.ts
 - `pnpm build:win` 能生成 NSIS 和 Portable 包。
 - 当前 Windows 安装包中已包含 `config/`、Hiyori 模型资源和 Cubism Core JS。
 
-这些检查只证明工程可以构建和启动，不代表上述 Live2D 加载与语音听写问题已经解决。
+这些检查证明工程可以构建和启动；Live2D 已通过开发模式运行时验证，Windows 语音听写问题仍未解决。
 
-## 明天建议顺序
+## 后续建议顺序
 
-1. 下载并放置与当前 Core JS 匹配的 `_em_module.wasm`。
-2. 用打包程序验证 Live2D；若仍失败，修复 `tutor-avatar` 协议的本地文件响应方式。
-3. 单独运行 Windows `System.Speech` 听写命令，确认 PowerShell、麦克风和语音包状态。
-4. 修复语音适配器后重新打包并进行一次完整课堂链路验证。
+1. 用 Windows 打包程序验证 Live2D；开发模式已经通过。
+2. 单独运行 Windows `System.Speech` 听写命令，确认 PowerShell、麦克风和语音包状态。
+3. 修复语音适配器后重新打包并进行一次完整课堂链路验证。
