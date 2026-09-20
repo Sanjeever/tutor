@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AppConfig, CozeStreamEvent } from '../../shared/types';
+import type { AppConfig, AvatarGender, CozeStreamEvent } from '../../shared/types';
 import Live2DAvatar from './components/Live2DAvatar';
 
 interface Message {
@@ -35,7 +35,13 @@ function SettingsDialog({ config, onClose, onSaved }: SettingsDialogProps) {
         ...draft,
         userId: draft.userId.trim(),
         questions: questionsText.split('\n').map((item) => item.trim()).filter(Boolean),
-        avatar: { model: draft.avatar.model.trim() },
+        avatar: {
+          gender: draft.avatar.gender,
+          models: {
+            female: draft.avatar.models.female.trim(),
+            male: draft.avatar.models.male.trim(),
+          },
+        },
         coze: {
           token: draft.coze.token.trim(),
           botId: draft.coze.botId.trim(),
@@ -56,7 +62,7 @@ function SettingsDialog({ config, onClose, onSaved }: SettingsDialogProps) {
       <section className="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settings-title">
         <div className="dialog-heading">
           <div>
-            <span className="eyebrow">CLASSROOM SETTINGS</span>
+            <span className="eyebrow">设置</span>
             <h2 id="settings-title">课堂设置</h2>
           </div>
           <button className="icon-button" onClick={onClose} aria-label="关闭设置">×</button>
@@ -85,14 +91,25 @@ function SettingsDialog({ config, onClose, onSaved }: SettingsDialogProps) {
             <span>课堂用户 ID</span>
             <input value={draft.userId} onChange={(event) => setDraft({ ...draft, userId: event.target.value })} />
           </label>
-          <label>
-            <span>Live2D 模型路径</span>
-            <input
-              value={draft.avatar.model}
-              placeholder="assets/avatar/your-model/model3.json"
-              onChange={(event) => setDraft({ ...draft, avatar: { model: event.target.value } })}
-            />
-          </label>
+          <fieldset className="settings-gender">
+            <legend>教师形象</legend>
+            <div className="gender-options">
+              {(['female', 'male'] as AvatarGender[]).map((gender) => (
+                <label className={`gender-option ${draft.avatar.gender === gender ? 'gender-option--selected' : ''}`} key={gender}>
+                  <input
+                    type="radio"
+                    name="avatar-gender"
+                    checked={draft.avatar.gender === gender}
+                    onChange={() => setDraft({ ...draft, avatar: { ...draft.avatar, gender } })}
+                  />
+                  <span>
+                    <strong>{gender === 'female' ? '女老师' : '男老师'}</strong>
+                    <small>{gender === 'female' ? 'Izumi · 长袖上衣' : 'Chitose · 西装领带'}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
         </div>
 
         <label className="settings-questions">
@@ -386,6 +403,7 @@ export default function App() {
 
   const exampleQuestions = config?.questions ?? [];
   const visibleHistory = history.slice(-6);
+  const teacherGenderLabel = config?.avatar.gender === 'male' ? '男老师' : '女老师';
 
   return (
     <main className="app-shell">
@@ -405,7 +423,7 @@ export default function App() {
           <div className="avatar-panel-top">
             <div>
               <strong>语文老师</strong>
-              <span>数字人讲解</span>
+              <span>{teacherGenderLabel} · 数字人讲解</span>
             </div>
             <span className="avatar-live"><i />{statusText}</span>
           </div>

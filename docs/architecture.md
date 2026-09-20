@@ -50,8 +50,9 @@ Windows 使用 PowerShell 调用 `System.Speech`；macOS 使用 `say` 生成音�
 负责：
 
 - 加载本地 `.model3.json` 和 Cubism Core
+- 根据配置中的教师性别选择男/女教师模型
 - 播放 Idle 基础动作
-- 根据播放音频的 `AnalyserNode` 音量设置 `ParamMouthOpenY`
+- 根据播放音频的 `AnalyserNode` 音量设置模型的嘴型参数
 
 未配置模型或模型加载失败时显示简洁的教师模型状态提示；不会从 CDN 加载 Live2D 运行时。
 

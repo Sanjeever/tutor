@@ -15,7 +15,11 @@ const emptyConfig: AppConfig = {
     '读完一篇记叙文后，怎样快速找到文章的中心思想？',
   ],
   avatar: {
-    model: 'assets/avatar/haru-greeter/haru_greeter_t05.model3.json',
+    gender: 'female',
+    models: {
+      female: 'assets/avatar/teacher-female/izumi_illust.model3.json',
+      male: 'assets/avatar/teacher-male/chitose.model3.json',
+    },
   },
 };
 
@@ -46,11 +50,15 @@ function parseConfig(value: unknown): AppConfig {
 
   const coze = source.coze as Partial<AppConfig['coze']>;
   const avatar = source.avatar as Partial<AppConfig['avatar']>;
+  const models = avatar.models as Partial<AppConfig['avatar']['models']> | undefined;
   if (typeof coze.token !== 'string' || typeof coze.botId !== 'string') {
     throw new Error('coze.token 和 coze.botId 必须是字符串');
   }
-  if (typeof avatar.model !== 'string') {
-    throw new Error('avatar.model 必须是字符串');
+  if (avatar.gender !== 'female' && avatar.gender !== 'male') {
+    throw new Error('avatar.gender 必须是 female 或 male');
+  }
+  if (!models || typeof models.female !== 'string' || typeof models.male !== 'string') {
+    throw new Error('avatar.models 必须包含 female 和 male 模型路径');
   }
   if (typeof source.userId !== 'string') {
     throw new Error('userId 必须是字符串');
@@ -67,7 +75,11 @@ function parseConfig(value: unknown): AppConfig {
     userId: source.userId.trim(),
     questions: source.questions.map((question) => question.trim()).filter(Boolean),
     avatar: {
-      model: avatar.model.trim(),
+      gender: avatar.gender,
+      models: {
+        female: models.female.trim(),
+        male: models.male.trim(),
+      },
     },
   };
 }

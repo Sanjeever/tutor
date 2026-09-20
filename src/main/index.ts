@@ -65,14 +65,15 @@ function createAvatarUrl(root: string, filePath: string, mountId: string): strin
 
 async function getConfiguredAvatarUrl(): Promise<string | null> {
   const config = await loadConfig();
-  if (!config.avatar.model) {
+  const model = config.avatar.models[config.avatar.gender];
+  if (!model) {
     return null;
   }
 
   const runtimeRoot = getRuntimeRoot();
-  const modelPath = path.isAbsolute(config.avatar.model)
-    ? path.resolve(config.avatar.model)
-    : path.resolve(runtimeRoot, config.avatar.model);
+  const modelPath = path.isAbsolute(model)
+    ? path.resolve(model)
+    : path.resolve(runtimeRoot, model);
   await access(modelPath);
 
   if (isWithin(runtimeRoot, modelPath)) {

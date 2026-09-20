@@ -653,6 +653,81 @@ code {
   gap: 16px 18px;
 }
 
+.settings-gender {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 2px 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.settings-gender legend {
+  margin-bottom: 7px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.gender-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.gender-option {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink-soft);
+  background: #fff;
+  cursor: pointer;
+  transition: 160ms ease;
+}
+
+.gender-option:hover,
+.gender-option--selected {
+  border-color: rgba(169, 80, 64, 0.45);
+  background: var(--accent-soft);
+}
+
+.gender-option input {
+  width: 15px !important;
+  height: 15px;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0 !important;
+  accent-color: var(--accent);
+}
+
+.gender-option > span {
+  min-width: 0;
+  margin: 0 !important;
+}
+
+.gender-option strong,
+.gender-option small {
+  display: block;
+}
+
+.gender-option strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.gender-option small {
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--muted-ink);
+  font-size: 10px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .settings-dialog label {
   display: block;
   color: var(--ink-soft);

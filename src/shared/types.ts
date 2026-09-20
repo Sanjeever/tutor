@@ -1,3 +1,13 @@
+export type AvatarGender = 'female' | 'male';
+
+export interface AvatarConfig {
+  gender: AvatarGender;
+  models: {
+    female: string;
+    male: string;
+  };
+}
+
 export interface AppConfig {
   coze: {
     token: string;
@@ -5,9 +15,7 @@ export interface AppConfig {
   };
   userId: string;
   questions: string[];
-  avatar: {
-    model: string;
-  };
+  avatar: AvatarConfig;
 }
 
 export interface CozeStreamEvent {

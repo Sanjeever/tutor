@@ -10,6 +10,10 @@
     "读完一篇记叙文后，怎样快速找到文章的中心思想？"
   ],
   "avatar": {
-    "model": "assets/avatar/haru-greeter/haru_greeter_t05.model3.json"
+    "gender": "female",
+    "models": {
+      "female": "assets/avatar/teacher-female/izumi_illust.model3.json",
+      "male": "assets/avatar/teacher-male/chitose.model3.json"
+    }
   }
 }

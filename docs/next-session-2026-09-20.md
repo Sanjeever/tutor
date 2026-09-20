@@ -4,13 +4,13 @@
 
 ## 当前状态
 
-项目已经完成 Electron、React、TypeScript、Vite、Coze Chat V3 流式调用、系统语音、极简语文课堂 UI、Live2D 模型接入和 Windows 打包基础能力。当前默认头像是 Live2D 官方免费 Haru（接待版本）模型，回答内容限制在固定面板内滚动。Live2D 加载问题已修复，Windows 语音听写问题仍待继续排查。
+项目已经完成 Electron、React、TypeScript、Vite、Coze Chat V3 流式调用、系统语音、极简语文课堂 UI、男女教师 Live2D 模型切换和 Windows 打包基础能力。当前默认头像是端庄长袖的女教师 Izumi，回答内容限制在固定面板内滚动。Live2D 加载问题已修复，Windows 语音听写问题仍待继续排查。
 
 ## 本次 UI 与头像更新
 
 - 移除了“语感练习簿”、`THE EXPLANATION DESK`、英文副标题、装饰性建议卡片和底部宣传文案，界面只保留教师、回答和提问入口。
 - 回答区改为固定工作区内滚动，流式回答更新时自动滚动到最新内容，不会再把头像和输入区向下撑开。
-- 默认模型切换为 `assets/avatar/haru-greeter/haru_greeter_t05.model3.json`，来源和授权说明见 `assets/avatar/README.md`。
+- 默认模型切换为 `assets/avatar/teacher-female/izumi_illust.model3.json`，设置中可以切换到 `assets/avatar/teacher-male/chitose.model3.json`，来源和授权说明见 `assets/avatar/README.md`。
 - 旧 Hiyori 资源仍保留为可选模型，但不再作为默认模型或加载失败 fallback。
 
 ## 问题一（已修复）：开发和打包程序不显示 Live2D

@@ -110,10 +110,10 @@ export default function Live2DAvatar({ modelUrl, runtimeUrl, mouthOpen, speaking
             return;
           }
           appLike.renderer.resize(width, height);
-          const scale = Math.min((width * 0.86) / baseWidth, (height * 0.95) / baseHeight);
+          const scale = Math.min((width * 0.9) / baseWidth, (height * 1.1) / baseHeight);
           model.scale.set(scale);
           model.x = (width - baseWidth * scale) / 2;
-          model.y = height - baseHeight * scale + 12;
+          model.y = height - baseHeight * scale + 30;
         };
         resizeObserver = new ResizeObserver(resize);
         resizeObserver.observe(container);
@@ -143,14 +143,19 @@ export default function Live2DAvatar({ modelUrl, runtimeUrl, mouthOpen, speaking
       return;
     }
     const value = Math.max(0, Math.min(1, mouthOpen));
-    if (coreModel.setParameterValueById) {
-      coreModel.setParameterValueById('ParamMouthOpenY', value);
-      return;
-    }
+    const mouthParameterIds = ['ParamMouthOpenY', 'PARAM_MOUTH_OPEN_Y'];
     if (coreModel.getParameterIndexById && coreModel.setParameterValueByIndex) {
-      const index = coreModel.getParameterIndexById('ParamMouthOpenY');
-      if (index >= 0) {
-        coreModel.setParameterValueByIndex(index, value);
+      for (const id of mouthParameterIds) {
+        const index = coreModel.getParameterIndexById(id);
+        if (index >= 0) {
+          coreModel.setParameterValueByIndex(index, value);
+          return;
+        }
+      }
+    }
+    if (coreModel.setParameterValueById) {
+      for (const id of mouthParameterIds) {
+        coreModel.setParameterValueById(id, value);
       }
     }
   }, [mouthOpen]);
