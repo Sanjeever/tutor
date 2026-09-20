@@ -384,103 +384,71 @@ export default function App() {
       <header className="topbar">
         <div className="brand-lockup">
           <div className="brand-seal">文</div>
-          <div>
-            <div className="brand-name">语文课堂数字人</div>
-            <div className="brand-subtitle">TUTOR / LANGUAGE STUDIO</div>
-          </div>
+          <div className="brand-name">语文课堂</div>
         </div>
-        <div className="topbar-context">
-          <span className="live-mark"><i />课堂进行中</span>
-          <span className="topbar-divider" />
-          <span>语文 · 互动讲解</span>
-          <button className="settings-trigger" onClick={() => setSettingsOpen(true)} aria-label="打开课堂设置">
-            <span className="settings-gear">◒</span> 设置
-          </button>
-        </div>
+        <button className="settings-trigger" onClick={() => setSettingsOpen(true)} aria-label="打开设置">
+          <span className="settings-gear" aria-hidden="true">⚙</span>
+          设置
+        </button>
       </header>
 
       <section className="workspace">
-        <aside className="lesson-rail">
-          <div className="rail-heading">
-            <span className="eyebrow">TODAY'S DESK</span>
-            <h2>语感练习簿</h2>
-            <p>让每一个问题，都成为理解文字的入口。</p>
-          </div>
-          <div className="lesson-note">
-            <span className="note-pin">●</span>
+        <aside className="avatar-panel">
+          <div className="avatar-panel-top">
             <div>
-              <strong>本节建议</strong>
-              <p>先说出你的直觉，再和助教一起找证据。</p>
+              <strong>语文老师</strong>
+              <span>数字人讲解</span>
             </div>
+            <span className="avatar-live"><i />{statusText}</span>
           </div>
-          <div className="example-block">
-            <div className="block-label"><span>可直接开问</span><span className="block-count">{exampleQuestions.length.toString().padStart(2, '0')}</span></div>
-            <div className="question-list">
-              {exampleQuestions.map((item, index) => (
-                <button className="question-card" key={`${item}-${index}`} onClick={() => void ask(item)} disabled={isThinking}>
-                  <span className="question-index">0{index + 1}</span>
-                  <span>{item}</span>
-                  <span className="question-arrow">↗</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="rail-footer">
-            <div className="rail-footer-icon">听</div>
-            <div>
-              <strong>支持系统听写</strong>
-              <span>Windows Speech · macOS Speech</span>
-            </div>
+          <Live2DAvatar modelUrl={modelUrl} runtimeUrl={runtimeUrl} mouthOpen={mouthOpen} speaking={isSpeaking} />
+          <div className="avatar-controls">
+            <div className="voice-state"><span className={`voice-pulse ${isSpeaking ? 'voice-pulse--active' : ''}`} /><span>{isSpeaking ? '正在朗读' : '等待提问'}</span></div>
+            {isSpeaking && <button className="stop-speech" onClick={stopAudio}>停止朗读</button>}
           </div>
         </aside>
 
-        <section className="studio-stage">
-          <div className="stage-heading">
+        <section className="conversation-panel">
+          <div className="conversation-heading">
             <div>
-              <span className="eyebrow">THE EXPLANATION DESK</span>
-              <h1>把问题说出来，<em>把文字读进去。</em></h1>
+              <span className="eyebrow">课堂问答</span>
+              <h1>你想了解什么？</h1>
             </div>
-            <div className="stage-index">01 <span>/</span> 03</div>
+            <span className="conversation-status" aria-live="polite">{statusText}</span>
           </div>
 
-          <div className="answer-layout">
-            <div className="response-panel">
-              <div className="response-meta"><span className="response-dot" />助教回答 <span className="response-status">{statusText}</span></div>
-              <div className="response-content" aria-live="polite">
-                {visibleHistory.map((message, index) => (
-                  <div className={`history-line history-line--${message.role}`} key={`${message.role}-${index}`}>
-                    <span>{message.role === 'user' ? '你' : '助教'}</span>
-                    <p>{message.content}</p>
-                  </div>
-                ))}
-                {activeAnswer ? (
-                  <div className="active-answer">
-                    <span className="answer-kicker">正在为你拆解</span>
-                    <p>{activeAnswer}<span className="typing-cursor" /></p>
-                  </div>
-                ) : (
-                  <div className="empty-answer">
-                    <span className="quote-mark">“</span>
-                    <p>从一个词、一句话，开始今天的语文探索。</p>
-                    <span className="quote-attribution">— 先选择左侧问题，或在下方输入</span>
-                  </div>
-                )}
-              </div>
-              {notice && <div className="notice-bar">{notice}</div>}
+          <div className="response-panel">
+            <div className="response-content" aria-live="polite">
+              {visibleHistory.map((message, index) => (
+                <div className={`history-line history-line--${message.role}`} key={`${message.role}-${index}`}>
+                  <span>{message.role === 'user' ? '你' : '老师'}</span>
+                  <p>{message.content}</p>
+                </div>
+              ))}
+              {activeAnswer ? (
+                <div className="active-answer">
+                  <span className="answer-kicker">老师的回答</span>
+                  <p>{activeAnswer}<span className="typing-cursor" /></p>
+                </div>
+              ) : (
+                <div className="empty-answer">
+                  <p>从一个问题开始。</p>
+                </div>
+              )}
             </div>
-
-            <div className="avatar-panel">
-              <div className="avatar-panel-top"><span>DIGITAL TEACHER</span><span className="avatar-live"><i /> LIVE</span></div>
-              <Live2DAvatar modelUrl={modelUrl} runtimeUrl={runtimeUrl} mouthOpen={mouthOpen} speaking={isSpeaking} />
-              <div className="avatar-controls">
-                <div className="voice-state"><span className={`voice-pulse ${isSpeaking ? 'voice-pulse--active' : ''}`} /><span>{isSpeaking ? '正在朗读' : '随时可以朗读'}</span></div>
-                {isSpeaking && <button className="stop-speech" onClick={stopAudio}>停止朗读</button>}
-              </div>
-            </div>
+            {notice && <div className="notice-bar">{notice}</div>}
           </div>
 
           <div className="composer-wrap">
-            <div className="composer-label"><span className="eyebrow">YOUR QUESTION</span><span>按 Enter 发送 · Shift + Enter 换行</span></div>
+            {exampleQuestions.length > 0 && (
+              <div className="prompt-list" aria-label="示例问题">
+                {exampleQuestions.slice(0, 3).map((item, index) => (
+                  <button className="prompt-chip" key={`${item}-${index}`} onClick={() => void ask(item)} disabled={isThinking}>
+                    {item}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="composer">
               <textarea
                 value={question}
@@ -510,10 +478,6 @@ export default function App() {
         </section>
       </section>
 
-      <footer className="app-footer">
-        <span>本地运行 · 系统语音 · Coze Chat V3 Stream</span>
-        <span>为课堂而设计 <b>✦</b></span>
-      </footer>
       {settingsOpen && config && <SettingsDialog config={config} onClose={() => setSettingsOpen(false)} onSaved={saveConfig} />}
     </main>
   );
