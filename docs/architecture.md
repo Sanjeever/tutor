@@ -53,7 +53,7 @@ Windows 使用 PowerShell 调用 `System.Speech`；macOS 使用 `say` 生成音�
 - 播放 Idle 基础动作
 - 根据播放音频的 `AnalyserNode` 音量设置 `ParamMouthOpenY`
 
-未配置模型时使用课堂演示占位角色，并在界面中明确提示模型配置状态；不会从 CDN 加载 Live2D 运行时。
+未配置模型或模型加载失败时显示简洁的教师模型状态提示；不会从 CDN 加载 Live2D 运行时。
 
 
 ## 数据流

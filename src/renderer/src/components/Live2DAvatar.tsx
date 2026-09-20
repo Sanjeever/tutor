@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Live2DAvatarProps {
   modelUrl: string | null;
@@ -19,7 +19,10 @@ type Live2DModelLike = {
   x: number;
   y: number;
   scale: { set(value: number): void };
-  internalModel?: { coreModel?: CoreModelLike };
+  internalModel?: {
+    coreModel?: CoreModelLike;
+    motionManager?: { groups?: { idle?: string } };
+  };
   motion?: (group: string) => unknown;
 };
 
@@ -95,7 +98,8 @@ export default function Live2DAvatar({ modelUrl, runtimeUrl, mouthOpen, speaking
         appLike.stage.addChild(model);
         appRef.current = appLike;
         modelRef.current = model;
-        model.motion?.('Idle');
+        const idleGroup = model.internalModel?.motionManager?.groups?.idle ?? 'Idle';
+        void model.motion?.(idleGroup);
 
         const baseWidth = model.width;
         const baseHeight = model.height;
@@ -151,32 +155,21 @@ export default function Live2DAvatar({ modelUrl, runtimeUrl, mouthOpen, speaking
     }
   }, [mouthOpen]);
 
-  const fallbackStyle = { '--mouth-open': mouthOpen } as CSSProperties;
-
   return (
     <div className={`avatar-stage avatar-stage--${status} ${speaking ? 'avatar-stage--speaking' : ''}`} ref={containerRef}>
       <canvas className="avatar-canvas" ref={canvasRef} aria-label="Live2D 数字人画布" />
       {status !== 'ready' && (
-        <div className="avatar-fallback" style={fallbackStyle}>
-          <div className="avatar-halo" />
-          <div className="avatar-bust">
-            <div className="avatar-hair" />
-            <div className="avatar-face">
-              <span className="avatar-eye avatar-eye--left" />
-              <span className="avatar-eye avatar-eye--right" />
-              <span className="avatar-mouth" />
-            </div>
-            <div className="avatar-collar" />
-          </div>
-          <div className="avatar-fallback-label">
-            <span>{status === 'loading' ? '正在唤醒数字人' : status === 'error' ? '模型需要检查' : '纸鸢 · 语文助教'}</span>
-            <small>{status === 'fallback' ? '可在设置中接入本地 Live2D 模型' : errorMessage}</small>
+        <div className="avatar-fallback" role="status">
+          <div className="avatar-placeholder">
+            <span className="avatar-placeholder-mark">文</span>
+            <strong>{status === 'loading' ? '正在加载教师形象' : status === 'error' ? '教师模型加载失败' : '教师模型未配置'}</strong>
+            <small>{status === 'fallback' ? '请在设置中选择本地 Live2D 模型' : errorMessage}</small>
           </div>
         </div>
       )}
       <div className="avatar-caption">
         <span className="caption-dot" />
-        {status === 'ready' ? 'Live2D 在线' : '课堂演示模式'}
+        {status === 'ready' ? '教师形象已连接' : '等待教师模型'}
       </div>
     </div>
   );
