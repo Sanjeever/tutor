@@ -1,0 +1,183 @@
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+
+interface Live2DAvatarProps {
+  modelUrl: string | null;
+  runtimeUrl: string | null;
+  mouthOpen: number;
+  speaking: boolean;
+}
+
+type CoreModelLike = {
+  setParameterValueById?: (id: string, value: number) => void;
+  getParameterIndexById?: (id: string) => number;
+  setParameterValueByIndex?: (index: number, value: number) => void;
+};
+
+type Live2DModelLike = {
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+  scale: { set(value: number): void };
+  internalModel?: { coreModel?: CoreModelLike };
+  motion?: (group: string) => unknown;
+};
+
+type PixiAppLike = {
+  renderer: { resize(width: number, height: number): void };
+  stage: { addChild(child: unknown): void };
+  destroy(removeView?: boolean, options?: unknown): void;
+};
+
+function loadScript(source: string): Promise<void> {
+  const current = document.querySelector<HTMLScriptElement>(`script[data-cubism-runtime="${source}"]`);
+  if (current) {
+    return Promise.resolve();
+  }
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.dataset.cubismRuntime = source;
+    script.src = source;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Live2D Cubism Core 加载失败'));
+    document.head.appendChild(script);
+  });
+}
+
+export default function Live2DAvatar({ modelUrl, runtimeUrl, mouthOpen, speaking }: Live2DAvatarProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const modelRef = useRef<Live2DModelLike | null>(null);
+  const appRef = useRef<PixiAppLike | null>(null);
+  const [status, setStatus] = useState<'loading' | 'ready' | 'fallback' | 'error'>('fallback');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    let resizeObserver: ResizeObserver | null = null;
+
+    const loadModel = async () => {
+      if (!modelUrl) {
+        setStatus('fallback');
+        return;
+      }
+      if (!runtimeUrl) {
+        setStatus('error');
+        setErrorMessage('缺少 Live2D Core：请放置 assets/avatar/runtime/live2dcubismcore.min.js');
+        return;
+      }
+      const container = containerRef.current;
+      const canvas = canvasRef.current;
+      if (!container || !canvas) {
+        return;
+      }
+
+      setStatus('loading');
+      setErrorMessage('');
+      try {
+        await loadScript(runtimeUrl);
+        const pixi = await import('pixi.js');
+        (window as Window & { PIXI?: unknown }).PIXI = pixi;
+        const live2d = await import('pixi-live2d-display/cubism4');
+        const app = new pixi.Application({
+          view: canvas,
+          transparent: true,
+          antialias: true,
+          resolution: window.devicePixelRatio || 1,
+        });
+        const appLike = app as unknown as PixiAppLike;
+        const model = (await live2d.Live2DModel.from(modelUrl)) as unknown as Live2DModelLike;
+        if (cancelled) {
+          appLike.destroy(true, { children: true });
+          return;
+        }
+
+        appLike.stage.addChild(model);
+        appRef.current = appLike;
+        modelRef.current = model;
+        model.motion?.('Idle');
+
+        const baseWidth = model.width;
+        const baseHeight = model.height;
+        const resize = () => {
+          const width = container.clientWidth;
+          const height = container.clientHeight;
+          if (!width || !height) {
+            return;
+          }
+          appLike.renderer.resize(width, height);
+          const scale = Math.min((width * 0.86) / baseWidth, (height * 0.95) / baseHeight);
+          model.scale.set(scale);
+          model.x = (width - baseWidth * scale) / 2;
+          model.y = height - baseHeight * scale + 12;
+        };
+        resizeObserver = new ResizeObserver(resize);
+        resizeObserver.observe(container);
+        resize();
+        setStatus('ready');
+      } catch (error) {
+        if (!cancelled) {
+          setStatus('error');
+          setErrorMessage(error instanceof Error ? error.message : 'Live2D 模型加载失败');
+        }
+      }
+    };
+
+    void loadModel();
+    return () => {
+      cancelled = true;
+      resizeObserver?.disconnect();
+      modelRef.current = null;
+      appRef.current?.destroy(true, { children: true });
+      appRef.current = null;
+    };
+  }, [modelUrl, runtimeUrl]);
+
+  useEffect(() => {
+    const coreModel = modelRef.current?.internalModel?.coreModel;
+    if (!coreModel) {
+      return;
+    }
+    const value = Math.max(0, Math.min(1, mouthOpen));
+    if (coreModel.setParameterValueById) {
+      coreModel.setParameterValueById('ParamMouthOpenY', value);
+      return;
+    }
+    if (coreModel.getParameterIndexById && coreModel.setParameterValueByIndex) {
+      const index = coreModel.getParameterIndexById('ParamMouthOpenY');
+      if (index >= 0) {
+        coreModel.setParameterValueByIndex(index, value);
+      }
+    }
+  }, [mouthOpen]);
+
+  const fallbackStyle = { '--mouth-open': mouthOpen } as CSSProperties;
+
+  return (
+    <div className={`avatar-stage avatar-stage--${status} ${speaking ? 'avatar-stage--speaking' : ''}`} ref={containerRef}>
+      <canvas className="avatar-canvas" ref={canvasRef} aria-label="Live2D 数字人画布" />
+      {status !== 'ready' && (
+        <div className="avatar-fallback" style={fallbackStyle}>
+          <div className="avatar-halo" />
+          <div className="avatar-bust">
+            <div className="avatar-hair" />
+            <div className="avatar-face">
+              <span className="avatar-eye avatar-eye--left" />
+              <span className="avatar-eye avatar-eye--right" />
+              <span className="avatar-mouth" />
+            </div>
+            <div className="avatar-collar" />
+          </div>
+          <div className="avatar-fallback-label">
+            <span>{status === 'loading' ? '正在唤醒数字人' : status === 'error' ? '模型需要检查' : '纸鸢 · 语文助教'}</span>
+            <small>{status === 'fallback' ? '可在设置中接入本地 Live2D 模型' : errorMessage}</small>
+          </div>
+        </div>
+      )}
+      <div className="avatar-caption">
+        <span className="caption-dot" />
+        {status === 'ready' ? 'Live2D 在线' : '课堂演示模式'}
+      </div>
+    </div>
+  );
+}
