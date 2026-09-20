@@ -134,6 +134,7 @@ export default function App() {
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationRef = useRef<number | null>(null);
+  const responseContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -288,6 +289,13 @@ export default function App() {
     return unsubscribe;
   }, [playAnswer]);
 
+  useEffect(() => {
+    const responseContent = responseContentRef.current;
+    if (responseContent) {
+      responseContent.scrollTop = responseContent.scrollHeight;
+    }
+  }, [activeAnswer, history.length]);
+
   const resetAnswer = () => {
     answerPartsRef.current.clear();
     answerRef.current = '';
@@ -418,7 +426,7 @@ export default function App() {
           </div>
 
           <div className="response-panel">
-            <div className="response-content" aria-live="polite">
+            <div className="response-content" ref={responseContentRef} aria-live="polite">
               {visibleHistory.map((message, index) => (
                 <div className={`history-line history-line--${message.role}`} key={`${message.role}-${index}`}>
                   <span>{message.role === 'user' ? '你' : '老师'}</span>
