@@ -43,7 +43,13 @@ export class MacOSSpeechAdapter implements SpeechAdapter {
     const directory = await mkdtemp(path.join(os.tmpdir(), 'tutor-speech-'));
     const outputPath = path.join(directory, 'speech.wav');
     try {
-      await this.run('say', ['-o', outputPath, text]);
+      await this.run('say', [
+        '-o',
+        outputPath,
+        '--file-format=WAVE',
+        '--data-format=LEI16',
+        text,
+      ]);
       return new Uint8Array(await readFile(outputPath));
     } finally {
       await rm(directory, { recursive: true, force: true });
