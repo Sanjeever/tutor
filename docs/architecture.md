@@ -52,7 +52,7 @@ Windows 使用 PowerShell 调用 `System.Speech`；macOS 使用 `say` 生成音�
 - 加载本地写实教师 FBX 模型和 TGA 纹理
 - 根据配置中的教师性别选择男/女教师模型
 - 使用 Three.js 光照、色调映射和相机渲染模型
-- 根据播放音频的 `AnalyserNode` 音量设置面部 `JawOpen`，并自动眨眼、轻微转头
+- 根据播放音频的 `AnalyserNode` 音量设置小幅面部 `JawOpen`，并自动眨眼、轻微转头；朗读时通过上臂、前臂和手部骨骼播放低幅度讲解手势
 
 未配置模型或模型加载失败时显示简洁的教师模型状态提示；不会从 CDN 加载模型或运行时。
 
