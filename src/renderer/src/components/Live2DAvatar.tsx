@@ -32,19 +32,53 @@ type PixiAppLike = {
   destroy(removeView?: boolean, options?: unknown): void;
 };
 
+const cubismScriptPromises = new Map<string, Promise<void>>();
+
+function hasCubismRuntime(): boolean {
+  return Boolean((window as Window & { Live2DCubismCore?: unknown }).Live2DCubismCore);
+}
+
 function loadScript(source: string): Promise<void> {
+  const pending = cubismScriptPromises.get(source);
+  if (pending) {
+    return pending;
+  }
+
   const current = document.querySelector<HTMLScriptElement>(`script[data-cubism-runtime="${source}"]`);
-  if (current) {
+  if (current && hasCubismRuntime()) {
     return Promise.resolve();
   }
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.dataset.cubismRuntime = source;
-    script.src = source;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Live2D Cubism Core 加载失败'));
-    document.head.appendChild(script);
+
+  const promise = new Promise<void>((resolve, reject) => {
+    const script = current ?? document.createElement('script');
+    const cleanup = () => {
+      script.removeEventListener('load', handleLoad);
+      script.removeEventListener('error', handleError);
+    };
+    const handleLoad = () => {
+      cleanup();
+      resolve();
+    };
+    const handleError = () => {
+      cleanup();
+      reject(new Error('Live2D Cubism Core 加载失败'));
+    };
+
+    script.addEventListener('load', handleLoad, { once: true });
+    script.addEventListener('error', handleError, { once: true });
+    if (!current) {
+      script.dataset.cubismRuntime = source;
+      script.src = source;
+      document.head.appendChild(script);
+    }
   });
+  cubismScriptPromises.set(source, promise);
+  void promise.catch(() => {
+    if (cubismScriptPromises.get(source) === promise) {
+      cubismScriptPromises.delete(source);
+    }
+  });
+  return promise;
 }
 
 export default function Live2DAvatar({ modelUrl, runtimeUrl, mouthOpen, speaking }: Live2DAvatarProps) {
@@ -79,9 +113,21 @@ export default function Live2DAvatar({ modelUrl, runtimeUrl, mouthOpen, speaking
       setErrorMessage('');
       try {
         await loadScript(runtimeUrl);
+        if (!hasCubismRuntime()) {
+          throw new Error('Live2D Cubism Core 加载完成但未找到运行时');
+        }
+        if (cancelled) {
+          return;
+        }
         const pixi = await import('pixi.js');
+        if (cancelled) {
+          return;
+        }
         (window as Window & { PIXI?: unknown }).PIXI = pixi;
         const live2d = await import('pixi-live2d-display/cubism4');
+        if (cancelled) {
+          return;
+        }
         const app = new pixi.Application({
           view: canvas,
           transparent: true,
@@ -89,6 +135,10 @@ export default function Live2DAvatar({ modelUrl, runtimeUrl, mouthOpen, speaking
           resolution: window.devicePixelRatio || 1,
         });
         const appLike = app as unknown as PixiAppLike;
+        if (cancelled) {
+          appLike.destroy(true, { children: true });
+          return;
+        }
         const model = (await live2d.Live2DModel.from(modelUrl)) as unknown as Live2DModelLike;
         if (cancelled) {
           appLike.destroy(true, { children: true });
