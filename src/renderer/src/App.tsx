@@ -152,6 +152,7 @@ export default function App() {
   const animationRef = useRef<number | null>(null);
   const mouthOpenRef = useRef(0);
   const responseContentRef = useRef<HTMLDivElement>(null);
+  const resettingSessionRef = useRef(false);
 
   useEffect(() => {
     const load = async () => {
@@ -264,6 +265,9 @@ export default function App() {
     };
 
     const unsubscribe = window.tutor.coze.onEvent((event) => {
+      if (resettingSessionRef.current) {
+        return;
+      }
       const data = eventData(event);
       if (typeof data.conversation_id === 'string') {
         conversationIdRef.current = data.conversation_id;
@@ -334,6 +338,27 @@ export default function App() {
     setActiveAnswer('');
   };
 
+  const resetSession = async () => {
+    resettingSessionRef.current = true;
+    setStatusText('正在重置会话…');
+    setNotice('');
+    stopAudio();
+    setIsListening(false);
+    if (isThinking) {
+      try {
+        await window.tutor.coze.cancel();
+      } catch (error) {
+        setNotice(error instanceof Error ? `重置会话失败：${error.message}` : '重置会话失败');
+      }
+    }
+    conversationIdRef.current = undefined;
+    resetAnswer();
+    setHistory([]);
+    setQuestion('');
+    setIsThinking(false);
+    setStatusText('等待提问');
+  };
+
   const ask = async (rawQuestion: string) => {
     const text = rawQuestion.trim();
     if (!text || isThinking) {
@@ -349,6 +374,7 @@ export default function App() {
       return;
     }
 
+    resettingSessionRef.current = false;
     stopAudio();
     if (activeAnswer.trim()) {
       setHistory((items) => [...items, { role: 'assistant', content: activeAnswer.trim() }]);
@@ -424,9 +450,14 @@ export default function App() {
         <div className="brand-lockup">
           <div className="brand-name">语文课堂</div>
         </div>
-        <button className="settings-trigger" onClick={() => setSettingsOpen(true)} aria-label="打开设置">
-          设置
-        </button>
+        <div className="topbar-actions">
+          <button className="reset-session-trigger" onClick={() => void resetSession()} aria-label="重置当前会话">
+            重置会话
+          </button>
+          <button className="settings-trigger" onClick={() => setSettingsOpen(true)} aria-label="打开设置">
+            设置
+          </button>
+        </div>
       </header>
 
       <section className="workspace">

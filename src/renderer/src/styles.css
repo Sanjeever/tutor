@@ -73,6 +73,7 @@ button:disabled {
 }
 
 .brand-lockup,
+.topbar-actions,
 .settings-trigger,
 .avatar-panel-top,
 .avatar-controls,
@@ -89,6 +90,10 @@ button:disabled {
   gap: 0;
 }
 
+.topbar-actions {
+  gap: 18px;
+}
+
 .brand-name {
   color: var(--ink);
   font-size: 15px;
@@ -101,6 +106,17 @@ button:disabled {
   color: var(--ink-soft);
   background: transparent;
   font-size: 12px;
+}
+
+.reset-session-trigger {
+  padding: 8px 0;
+  color: var(--muted-ink);
+  background: transparent;
+  font-size: 12px;
+}
+
+.reset-session-trigger:hover {
+  color: var(--accent-dark);
 }
 
 .settings-trigger:hover {

@@ -30,6 +30,7 @@ Electron Main
 - 解析 SSE 事件并转发增量消息
 - 保存并复用 `conversation_id`
 - 中断本地请求，同时调用取消进行中对话接口
+- 支持重置会话，清除当前 `conversation_id` 和界面问答内容
 - 将错误作为 IPC 事件返回渲染层
 
 
