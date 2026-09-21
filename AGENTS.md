@@ -43,8 +43,9 @@ https://docs.coze.cn/developer_guides_chat_v3
 
 数字人：
 
-- Live2D Cubism Web SDK
-- 本地模型资源
+- Three.js
+- 本地写实 3D 教师模型资源（FBX + TGA 纹理）
+- 使用模型内置面部 Morph Target 驱动口型和基础表情
 
 
 ## 功能链路
@@ -68,7 +69,7 @@ Coze Chat V3 Stream
 音频播放
     |
     ↓
-Live2D 口型同步
+Three.js 3D 面部 Morph Target 同步
 ```
 
 
@@ -89,7 +90,7 @@ config/
 - Coze Agent ID
 - 用户 ID
 - 默认问题
-- Live2D 模型路径
+- 男/女教师 3D 模型路径
 
 
 禁止：

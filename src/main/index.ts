@@ -4,13 +4,13 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import type { CozeQuestion, CozeStreamEvent } from '../shared/types';
-import { ensureConfigFile, getAssetPath, getRuntimeRoot, loadConfig, saveConfig } from './config';
+import { ensureConfigFile, getRuntimeRoot, loadConfig, saveConfig } from './config';
 import { CozeClient } from './coze/client';
 import { createSpeechAdapter } from './speech';
 
 protocol.registerSchemesAsPrivileged([
   {
-    scheme: 'tutor-avatar',
+    scheme: 'tutor-assets',
     privileges: {
       standard: true,
       secure: true,
@@ -20,7 +20,7 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
-const avatarMounts = new Map<string, string>();
+const assetMounts = new Map<string, string>();
 const speech = createSpeechAdapter();
 let mainWindow: BrowserWindow | null = null;
 let activeStream: {
@@ -58,12 +58,12 @@ function isWithin(root: string, target: string): boolean {
   return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
 }
 
-function createAvatarUrl(root: string, filePath: string, mountId: string): string {
+function createAssetUrl(root: string, filePath: string, mountId: string): string {
   const relativePath = path.relative(root, filePath).split(path.sep).map(encodeURIComponent).join('/');
-  return `tutor-avatar://${mountId}/${relativePath}`;
+  return `tutor-assets://${mountId}/${relativePath}`;
 }
 
-async function getConfiguredAvatarUrl(): Promise<string | null> {
+async function getConfiguredModelUrl(): Promise<string | null> {
   const config = await loadConfig();
   const model = config.avatar.models[config.avatar.gender];
   if (!model) {
@@ -77,30 +77,19 @@ async function getConfiguredAvatarUrl(): Promise<string | null> {
   await access(modelPath);
 
   if (isWithin(runtimeRoot, modelPath)) {
-    return createAvatarUrl(runtimeRoot, modelPath, 'app');
+    return createAssetUrl(runtimeRoot, modelPath, 'app');
   }
 
   const mountId = `mount-${randomUUID()}`;
-  avatarMounts.set(mountId, path.dirname(modelPath));
-  return createAvatarUrl(path.dirname(modelPath), modelPath, mountId);
-}
-
-async function getConfiguredRuntimeUrl(): Promise<string | null> {
-  const runtimePath = getAssetPath('avatar', 'runtime', 'live2dcubismcore.min.js');
-  try {
-    await access(runtimePath);
-  } catch {
-    return null;
-  }
-  return createAvatarUrl(getRuntimeRoot(), runtimePath, 'app');
+  assetMounts.set(mountId, path.dirname(modelPath));
+  return createAssetUrl(path.dirname(modelPath), modelPath, mountId);
 }
 
 function registerIpcHandlers(): void {
   ipcMain.handle('config:get', () => loadConfig());
   ipcMain.handle('config:save', (_event, config) => saveConfig(config));
 
-  ipcMain.handle('avatar:model-url', () => getConfiguredAvatarUrl());
-  ipcMain.handle('avatar:runtime-url', () => getConfiguredRuntimeUrl());
+  ipcMain.handle('avatar:model-url', () => getConfiguredModelUrl());
 
   ipcMain.handle('speech:synthesize', (_event, text: unknown) => {
     if (typeof text !== 'string' || !text.trim()) {
@@ -183,17 +172,17 @@ function registerIpcHandlers(): void {
   });
 }
 
-async function registerAvatarProtocol(): Promise<void> {
-  await protocol.handle('tutor-avatar', async (request) => {
+async function registerAssetProtocol(): Promise<void> {
+  await protocol.handle('tutor-assets', async (request) => {
     const url = new URL(request.url);
-    const root = url.hostname === 'app' ? getRuntimeRoot() : avatarMounts.get(url.hostname);
+    const root = url.hostname === 'app' ? getRuntimeRoot() : assetMounts.get(url.hostname);
     if (!root) {
-      return new Response('Unknown avatar mount', { status: 404 });
+      return new Response('Unknown asset mount', { status: 404 });
     }
     const relativePath = decodeURIComponent(url.pathname).replace(/^\/+/, '');
     const filePath = path.resolve(root, relativePath);
     if (!isWithin(root, filePath)) {
-      return new Response('Avatar path is outside the configured model directory', { status: 403 });
+      return new Response('Asset path is outside the configured model directory', { status: 403 });
     }
     return net.fetch(pathToFileURL(filePath).toString());
   });
@@ -228,7 +217,7 @@ function createWindow(): void {
 
 void app.whenReady().then(async () => {
   await ensureConfigFile();
-  await registerAvatarProtocol();
+  await registerAssetProtocol();
   registerIpcHandlers();
   Menu.setApplicationMenu(null);
   createWindow();

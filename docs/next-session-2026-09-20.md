@@ -1,5 +1,7 @@
 # 交班记录：首次运行问题
 
+> 历史记录：本文记录 2026-09-20 的 Live2D 阶段，仅供追溯历史问题。2026-09-21 已完成迁移：运行时改为 Three.js，内置 Microsoft Rocketbox 男/女教师 FBX 模型，旧 Live2D 资源和 Cubism Core 已删除；当前配置和部署说明以 `docs/architecture.md`、`docs/config.md` 和 `docs/deployment.md` 为准。
+
 记录时间：2026-09-20
 
 ## 当前状态

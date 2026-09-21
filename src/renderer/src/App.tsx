@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AppConfig, AvatarGender, CozeStreamEvent } from '../../shared/types';
-import Live2DAvatar from './components/Live2DAvatar';
+import ThreeDAvatar from './components/ThreeDAvatar';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -104,7 +104,7 @@ function SettingsDialog({ config, onClose, onSaved }: SettingsDialogProps) {
                   />
                   <span>
                     <strong>{gender === 'female' ? '女老师' : '男老师'}</strong>
-                    <small>{gender === 'female' ? 'Izumi · 长袖上衣' : 'Chitose · 西装领带'}</small>
+                    <small>{gender === 'female' ? 'Business Female 01 · 职业装' : 'Business Male 01 · 职业装'}</small>
                   </span>
                 </label>
               ))}
@@ -142,7 +142,6 @@ export default function App() {
   const [notice, setNotice] = useState('');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [modelUrl, setModelUrl] = useState<string | null>(null);
-  const [runtimeUrl, setRuntimeUrl] = useState<string | null>(null);
 
   const answerRef = useRef('');
   const answerPartsRef = useRef(new Map<string, string>());
@@ -157,14 +156,12 @@ export default function App() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [loadedConfig, loadedModelUrl, loadedRuntimeUrl] = await Promise.all([
+        const [loadedConfig, loadedModelUrl] = await Promise.all([
           window.tutor.config.get(),
           window.tutor.avatar.getModelUrl(),
-          window.tutor.avatar.getRuntimeUrl(),
         ]);
         setConfig(loadedConfig);
         setModelUrl(loadedModelUrl);
-        setRuntimeUrl(loadedRuntimeUrl);
       } catch (error) {
         setConfigError(error instanceof Error ? error.message : '无法读取课堂配置');
       }
@@ -233,9 +230,9 @@ export default function App() {
           energy += normalized * normalized;
         }
         const rms = Math.sqrt(energy / samples.length);
-        const level = Math.min(1, Math.max(0, (rms - 0.018) * 18));
-        const target = Math.pow(level, 0.75);
-        const response = target > mouthOpenRef.current ? 0.52 : 0.2;
+        const level = Math.min(1, Math.max(0, (rms - 0.006) * 28));
+        const target = Math.pow(level, 0.68);
+        const response = target > mouthOpenRef.current ? 0.68 : 0.28;
         mouthOpenRef.current += (target - mouthOpenRef.current) * response;
         setMouthOpen(mouthOpenRef.current);
         animationRef.current = requestAnimationFrame(measure);
@@ -389,9 +386,8 @@ export default function App() {
 
   const saveConfig = (saved: AppConfig) => {
     setConfig(saved);
-    void Promise.all([window.tutor.avatar.getModelUrl(), window.tutor.avatar.getRuntimeUrl()]).then(([nextModelUrl, nextRuntimeUrl]) => {
+    void window.tutor.avatar.getModelUrl().then((nextModelUrl) => {
       setModelUrl(nextModelUrl);
-      setRuntimeUrl(nextRuntimeUrl);
     });
     setNotice('设置已保存');
   };
@@ -428,13 +424,15 @@ export default function App() {
           <div className="avatar-panel-top">
             <strong>语文老师</strong>
           </div>
-          <Live2DAvatar key={modelUrl ?? 'avatar-empty'} modelUrl={modelUrl} runtimeUrl={runtimeUrl} mouthOpen={mouthOpen} speaking={isSpeaking} />
-          {isSpeaking && (
-            <div className="avatar-controls">
-              <div className="voice-state"><span className="voice-pulse voice-pulse--active" /><span>正在朗读</span></div>
-              <button className="stop-speech" onClick={stopAudio}>停止朗读</button>
-            </div>
-          )}
+          <div className="avatar-stage-shell">
+            <ThreeDAvatar key={modelUrl ?? 'avatar-empty'} modelUrl={modelUrl} mouthOpen={mouthOpen} speaking={isSpeaking} />
+            {isSpeaking && (
+              <div className="avatar-controls">
+                <div className="voice-state"><span className="voice-pulse voice-pulse--active" /><span>正在朗读</span></div>
+                <button className="stop-speech" onClick={stopAudio}>停止朗读</button>
+              </div>
+            )}
+          </div>
         </aside>
 
         <section className="conversation-panel">

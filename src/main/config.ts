@@ -17,8 +17,8 @@ const emptyConfig: AppConfig = {
   avatar: {
     gender: 'female',
     models: {
-      female: 'assets/avatar/teacher-female/izumi_illust.model3.json',
-      male: 'assets/avatar/teacher-male/chitose.model3.json',
+      female: 'assets/avatar/teacher-female/Export/Business_Female_01_facial.fbx',
+      male: 'assets/avatar/teacher-male/Export/Business_Male_01_facial.fbx',
     },
   },
 };

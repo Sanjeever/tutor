@@ -23,8 +23,8 @@ config/config.json
   "avatar": {
     "gender": "female",
     "models": {
-      "female": "assets/avatar/teacher-female/izumi_illust.model3.json",
-      "male": "assets/avatar/teacher-male/chitose.model3.json"
+      "female": "assets/avatar/teacher-female/Export/Business_Female_01_facial.fbx",
+      "male": "assets/avatar/teacher-male/Export/Business_Male_01_facial.fbx"
     }
   }
 }
@@ -40,13 +40,9 @@ config/config.json
 |`userId`|发送给 Coze 的课堂用户标识，用于复用对话上下文|
 |`questions`|语文课堂示例问题数组，设置页中每行一个|
 |`avatar.gender`|当前教师性别，可选 `female` 或 `male`；在设置中切换后立即重新加载对应模型|
-|`avatar.models.female`|女教师 Live2D 模型的本地 `.model3.json` 路径|
-|`avatar.models.male`|男教师 Live2D 模型的本地 `.model3.json` 路径|
+|`avatar.models.female`|女教师写实 3D 模型的本地 FBX 路径|
+|`avatar.models.male`|男教师写实 3D 模型的本地 FBX 路径|
 
 软件运行时会将配置解析为强类型结构；字段类型错误会直接显示启动错误，不会静默使用假配置。
 
-仓库已内置 Live2D Cubism Core Web 运行时，路径为：
-
-```
-assets/avatar/runtime/live2dcubismcore.min.js
-```
+两套模型使用 Microsoft Rocketbox 的职业人物资源，模型文件旁的 `Textures/` 目录必须一起保留。Three.js 通过本地 `tutor-assets` 协议读取 FBX 和 TGA 纹理。

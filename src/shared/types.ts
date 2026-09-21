@@ -45,6 +45,5 @@ export interface TutorApi {
   };
   avatar: {
     getModelUrl(): Promise<string | null>;
-    getRuntimeUrl(): Promise<string | null>;
   };
 }

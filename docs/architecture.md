@@ -7,13 +7,13 @@ React Renderer
   ├─ 语文课堂工作台
   ├─ 流式回答展示
   ├─ 音频播放与音量分析
-  └─ Live2D 画布
+  └─ Three.js 写实 3D 画布
           ↓ contextBridge / IPC
 Electron Main
   ├─ 配置文件读写（软件目录/config/config.json）
   ├─ Coze Chat V3 Stream
   ├─ 系统语音适配器
-  └─ tutor-avatar 本地资源协议
+  └─ tutor-assets 本地资源协议
           ├─ Coze API
           ├─ Windows Speech API / macOS Speech + say
           └─ 软件目录/assets
@@ -49,12 +49,12 @@ Windows 使用 PowerShell 调用 `System.Speech`；macOS 使用 `say` 生成音�
 
 负责：
 
-- 加载本地 `.model3.json` 和 Cubism Core
+- 加载本地写实教师 FBX 模型和 TGA 纹理
 - 根据配置中的教师性别选择男/女教师模型
-- 播放 Idle 基础动作
-- 根据播放音频的 `AnalyserNode` 音量设置模型的嘴型参数
+- 使用 Three.js 光照、色调映射和相机渲染模型
+- 根据播放音频的 `AnalyserNode` 音量设置面部 `JawOpen`，并自动眨眼、轻微转头
 
-未配置模型或模型加载失败时显示简洁的教师模型状态提示；不会从 CDN 加载 Live2D 运行时。
+未配置模型或模型加载失败时显示简洁的教师模型状态提示；不会从 CDN 加载模型或运行时。
 
 
 ## 数据流
@@ -72,5 +72,5 @@ TTS
  ↓（系统 TTS WAV）
 AudioBuffer + AnalyserNode
  ↓ 音量值
-Live2D Mouth 参数
+Three.js 面部 Morph Target
 ```

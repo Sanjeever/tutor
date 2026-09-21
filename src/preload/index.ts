@@ -25,7 +25,6 @@ const api: TutorApi = {
   },
   avatar: {
     getModelUrl: () => ipcRenderer.invoke('avatar:model-url') as Promise<string | null>,
-    getRuntimeUrl: () => ipcRenderer.invoke('avatar:runtime-url') as Promise<string | null>,
   },
 };
 
