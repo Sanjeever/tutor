@@ -427,7 +427,7 @@ export default function App() {
             </div>
             <span className="avatar-live"><i />{statusText}</span>
           </div>
-          <Live2DAvatar modelUrl={modelUrl} runtimeUrl={runtimeUrl} mouthOpen={mouthOpen} speaking={isSpeaking} />
+          <Live2DAvatar key={modelUrl ?? 'avatar-empty'} modelUrl={modelUrl} runtimeUrl={runtimeUrl} mouthOpen={mouthOpen} speaking={isSpeaking} />
           <div className="avatar-controls">
             <div className="voice-state"><span className={`voice-pulse ${isSpeaking ? 'voice-pulse--active' : ''}`} /><span>{isSpeaking ? '正在朗读' : '等待提问'}</span></div>
             {isSpeaking && <button className="stop-speech" onClick={stopAudio}>停止朗读</button>}
