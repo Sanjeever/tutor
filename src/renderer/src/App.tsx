@@ -183,6 +183,11 @@ export default function App() {
     setMouthOpen(0);
   }, []);
 
+  const finishAudio = useCallback(() => {
+    releaseAudio();
+    setStatusText('等待提问');
+  }, [releaseAudio]);
+
   const stopAudio = useCallback(() => {
     const source = sourceRef.current;
     if (source) {
@@ -196,6 +201,11 @@ export default function App() {
     releaseAudio();
     void window.tutor.speech.stop();
   }, [releaseAudio]);
+
+  const stopReading = useCallback(() => {
+    stopAudio();
+    setStatusText('等待提问');
+  }, [stopAudio]);
 
   const playAnswer = useCallback(async (text: string) => {
     if (!text.trim()) {
@@ -217,7 +227,7 @@ export default function App() {
       analyser.connect(context.destination);
       sourceRef.current = source;
       analyserRef.current = analyser;
-      source.onended = releaseAudio;
+      source.onended = finishAudio;
       const samples = new Uint8Array(analyser.fftSize);
       const measure = () => {
         if (analyserRef.current !== analyser) {
@@ -242,9 +252,9 @@ export default function App() {
       measure();
     } catch (error) {
       setNotice(error instanceof Error ? `语音播放失败：${error.message}` : '语音播放失败');
-      releaseAudio();
+      finishAudio();
     }
-  }, [releaseAudio, stopAudio]);
+  }, [finishAudio, stopAudio]);
 
   useEffect(() => {
     const updateAnswer = () => {
@@ -429,7 +439,7 @@ export default function App() {
             {isSpeaking && (
               <div className="avatar-controls">
                 <div className="voice-state"><span className="voice-pulse voice-pulse--active" /><span>正在朗读</span></div>
-                <button className="stop-speech" onClick={stopAudio}>停止朗读</button>
+                <button className="stop-speech" onClick={stopReading}>停止朗读</button>
               </div>
             )}
           </div>

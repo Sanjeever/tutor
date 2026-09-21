@@ -48,6 +48,12 @@ interface AvatarRuntime {
 
 const MAX_PIXEL_RATIO = 2;
 const TARGET_MODEL_HEIGHT = 3.2;
+const CAMERA_FOV = 30;
+const CAMERA_DISTANCE = 4.3;
+const CAMERA_TARGET_Y = 2.25;
+const REST_UPPER_ARM_Y = 0.7;
+const REST_UPPER_ARM_Z = -0.2;
+const REST_FOREARM_Z = 0.4;
 
 function clamp(value: number, min = 0, max = 1): number {
   return Math.min(max, Math.max(min, value));
@@ -159,7 +165,7 @@ function createArmChain(model: THREE.Group, side: 'left' | 'right', centerX: num
     upperArm: createBoneTarget(upperArm),
     forearm: createBoneTarget(forearm),
     hand: createBoneTarget(hand),
-    // Positive-X arms need a negative Z rotation to settle downward, and vice versa.
+    // The FBX stores the left and right arm axes as mirrored local spaces.
     direction: worldPosition.x >= centerX ? -1 : 1,
   };
 }
@@ -194,18 +200,22 @@ function gesturePulse(age: number, slot: number): number {
 
 function setBodyPose(runtime: AvatarRuntime, elapsed: number, speaking: boolean): void {
   const speakingAge = speaking ? elapsed - runtime.gestureStartedAt : 0;
-  const leftGesture = speaking ? gesturePulse(speakingAge, 1) + gesturePulse(speakingAge, 2) * 0.42 : 0;
-  const rightGesture = speaking ? gesturePulse(speakingAge, 0) + gesturePulse(speakingAge, 2) * 0.42 : 0;
+  const leftGesture = speaking ? Math.min(1, gesturePulse(speakingAge, 1) + gesturePulse(speakingAge, 2) * 0.32) : 0;
+  const rightGesture = speaking ? Math.min(1, gesturePulse(speakingAge, 0) + gesturePulse(speakingAge, 2) * 0.32) : 0;
 
   const poseArm = (chain: ArmChain | null, gesture: number) => {
     if (!chain) {
       return;
     }
-    const upperArm = chain.direction * (0.58 - gesture * 0.62);
-    const forearm = chain.direction * (0.24 - gesture * 0.64);
-    applyBonePose(chain.upperArm, gesture * 0.06, chain.direction * gesture * 0.08, upperArm);
-    applyBonePose(chain.forearm, -gesture * 0.12, chain.direction * gesture * 0.14, forearm);
-    applyBonePose(chain.hand, gesture * 0.24, chain.direction * gesture * 0.18, chain.direction * gesture * 0.25);
+    // The FBX already mirrors the local axes of the left and right arms. Keep
+    // the Z rotation identical and only mirror the inward Y rotation so the
+    // idle pose hangs straight down beside the body.
+    const upperArmY = -chain.direction * (REST_UPPER_ARM_Y - gesture * 0.15);
+    const upperArmZ = REST_UPPER_ARM_Z - gesture * 0.8;
+    const forearmZ = REST_FOREARM_Z - gesture * 0.35;
+    applyBonePose(chain.upperArm, gesture * 0.04, upperArmY, upperArmZ);
+    applyBonePose(chain.forearm, -gesture * 0.06, -chain.direction * gesture * 0.06, forearmZ);
+    applyBonePose(chain.hand, gesture * 0.12, chain.direction * gesture * 0.06, chain.direction * gesture * 0.12);
   };
 
   poseArm(runtime.armRig.left, leftGesture);
@@ -298,7 +308,7 @@ export default function ThreeDAvatar({ modelUrl, mouthOpen, speaking }: ThreeDAv
     setErrorMessage('');
 
     const scene = createScene();
-    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(CAMERA_FOV, 1, 0.1, 100);
     const renderer = new THREE.WebGLRenderer({
       canvas,
       alpha: true,
@@ -318,8 +328,8 @@ export default function ThreeDAvatar({ modelUrl, mouthOpen, speaking }: ThreeDAv
       }
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
-      camera.position.set(0, 2.06, 5.0);
-      camera.lookAt(0, 2.08, 0);
+      camera.position.set(0, CAMERA_TARGET_Y, CAMERA_DISTANCE);
+      camera.lookAt(0, CAMERA_TARGET_Y - 0.02, 0);
       camera.updateProjectionMatrix();
     };
 
@@ -385,8 +395,8 @@ export default function ThreeDAvatar({ modelUrl, mouthOpen, speaking }: ThreeDAv
             current.gestureStartedAt = elapsed;
           }
           current.wasSpeaking = speakingNow;
-          current.model.rotation.y = current.baseRotation.y + Math.sin(elapsed * 0.52) * 0.018;
-          current.model.rotation.z = current.baseRotation.z + Math.sin(elapsed * 0.72) * 0.006 * (0.65 + speakingMotion * 0.35);
+          current.model.rotation.y = current.baseRotation.y + Math.sin(elapsed * 0.52) * 0.014;
+          current.model.rotation.z = current.baseRotation.z + Math.sin(elapsed * 0.72) * 0.004 * (0.65 + speakingMotion * 0.35);
           setBodyPose(current, elapsed, speakingNow);
           setFacePose(current, mouthOpenRef.current, blink, speakingNow);
           current.renderer.render(current.scene, current.camera);
@@ -420,8 +430,8 @@ export default function ThreeDAvatar({ modelUrl, mouthOpen, speaking }: ThreeDAv
       <canvas className="avatar-canvas" ref={canvasRef} aria-label="Three.js 写实 3D 教师数字人画布" />
       {status === 'ready' && (
         <div className="avatar-stage-caption" aria-hidden="true">
-          <span>本地写实模型</span>
-          <span>THREE / FBX</span>
+          <span>课堂讲解</span>
+          <span>立正待机</span>
         </div>
       )}
       {status !== 'ready' && (
