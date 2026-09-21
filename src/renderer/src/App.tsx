@@ -151,6 +151,7 @@ export default function App() {
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationRef = useRef<number | null>(null);
+  const mouthOpenRef = useRef(0);
   const responseContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -181,6 +182,7 @@ export default function App() {
     sourceRef.current = null;
     analyserRef.current = null;
     setIsSpeaking(false);
+    mouthOpenRef.current = 0;
     setMouthOpen(0);
   }, []);
 
@@ -212,6 +214,7 @@ export default function App() {
       const source = context.createBufferSource();
       const analyser = context.createAnalyser();
       analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.35;
       source.buffer = decoded;
       source.connect(analyser);
       analyser.connect(context.destination);
@@ -229,7 +232,12 @@ export default function App() {
           const normalized = (sample - 128) / 128;
           energy += normalized * normalized;
         }
-        setMouthOpen(Math.min(1, Math.sqrt(energy / samples.length) * 4.6));
+        const rms = Math.sqrt(energy / samples.length);
+        const level = Math.min(1, Math.max(0, (rms - 0.018) * 18));
+        const target = Math.pow(level, 0.75);
+        const response = target > mouthOpenRef.current ? 0.52 : 0.2;
+        mouthOpenRef.current += (target - mouthOpenRef.current) * response;
+        setMouthOpen(mouthOpenRef.current);
         animationRef.current = requestAnimationFrame(measure);
       };
       setIsSpeaking(true);
