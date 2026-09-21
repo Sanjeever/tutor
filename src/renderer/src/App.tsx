@@ -392,7 +392,7 @@ export default function App() {
     return (
       <main className="fatal-screen">
         <div className="fatal-card">
-          <span className="eyebrow">TUTOR / STARTUP ERROR</span>
+          <span className="eyebrow">启动错误</span>
           <h1>课堂配置无法读取</h1>
           <p>{configError}</p>
           <code>config/config.json</code>
@@ -403,17 +403,14 @@ export default function App() {
 
   const exampleQuestions = config?.questions ?? [];
   const visibleHistory = history.slice(-6);
-  const teacherGenderLabel = config?.avatar.gender === 'male' ? '男老师' : '女老师';
 
   return (
     <main className="app-shell">
       <header className="topbar">
         <div className="brand-lockup">
-          <div className="brand-seal">文</div>
           <div className="brand-name">语文课堂</div>
         </div>
         <button className="settings-trigger" onClick={() => setSettingsOpen(true)} aria-label="打开设置">
-          <span className="settings-gear" aria-hidden="true">⚙</span>
           设置
         </button>
       </header>
@@ -421,26 +418,21 @@ export default function App() {
       <section className="workspace">
         <aside className="avatar-panel">
           <div className="avatar-panel-top">
-            <div>
-              <strong>语文老师</strong>
-              <span>{teacherGenderLabel} · 数字人讲解</span>
-            </div>
-            <span className="avatar-live"><i />{statusText}</span>
+            <strong>语文老师</strong>
           </div>
           <Live2DAvatar key={modelUrl ?? 'avatar-empty'} modelUrl={modelUrl} runtimeUrl={runtimeUrl} mouthOpen={mouthOpen} speaking={isSpeaking} />
-          <div className="avatar-controls">
-            <div className="voice-state"><span className={`voice-pulse ${isSpeaking ? 'voice-pulse--active' : ''}`} /><span>{isSpeaking ? '正在朗读' : '等待提问'}</span></div>
-            {isSpeaking && <button className="stop-speech" onClick={stopAudio}>停止朗读</button>}
-          </div>
+          {isSpeaking && (
+            <div className="avatar-controls">
+              <div className="voice-state"><span className="voice-pulse voice-pulse--active" /><span>正在朗读</span></div>
+              <button className="stop-speech" onClick={stopAudio}>停止朗读</button>
+            </div>
+          )}
         </aside>
 
         <section className="conversation-panel">
           <div className="conversation-heading">
-            <div>
-              <span className="eyebrow">课堂问答</span>
-              <h1>你想了解什么？</h1>
-            </div>
-            <span className="conversation-status" aria-live="polite">{statusText}</span>
+            <h1>你想了解什么？</h1>
+            {statusText !== '等待提问' && <span className="conversation-status" aria-live="polite">{statusText}</span>}
           </div>
 
           <div className="response-panel">
@@ -453,7 +445,6 @@ export default function App() {
               ))}
               {activeAnswer ? (
                 <div className="active-answer">
-                  <span className="answer-kicker">老师的回答</span>
                   <p>{activeAnswer}<span className="typing-cursor" /></p>
                 </div>
               ) : (
@@ -466,7 +457,7 @@ export default function App() {
           </div>
 
           <div className="composer-wrap">
-            {exampleQuestions.length > 0 && (
+            {!history.length && !activeAnswer && exampleQuestions.length > 0 && (
               <div className="prompt-list" aria-label="示例问题">
                 {exampleQuestions.slice(0, 3).map((item, index) => (
                   <button className="prompt-chip" key={`${item}-${index}`} onClick={() => void ask(item)} disabled={isThinking}>
@@ -485,7 +476,7 @@ export default function App() {
                     void ask(question);
                   }
                 }}
-                placeholder="比如：‘绿’字为什么比‘吹’更有画面感？"
+                placeholder="输入一个语文问题"
                 rows={2}
                 disabled={isThinking}
               />

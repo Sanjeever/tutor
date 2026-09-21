@@ -222,10 +222,6 @@ export default function Live2DAvatar({ modelUrl, runtimeUrl, mouthOpen, speaking
           </div>
         </div>
       )}
-      <div className="avatar-caption">
-        <span className="caption-dot" />
-        {status === 'ready' ? '教师形象已连接' : '等待教师模型'}
-      </div>
     </div>
   );
 }

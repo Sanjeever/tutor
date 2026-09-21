@@ -1,22 +1,22 @@
 :root {
   color: #20282c;
-  background: #f5f6f2;
+  background: #f7f7f5;
   font-family: "Source Han Sans SC", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   --ink: #20282c;
   --ink-soft: #536065;
   --muted-ink: #7c8789;
-  --canvas: #f5f6f2;
+  --canvas: #f7f7f5;
   --surface: #ffffff;
-  --surface-muted: #eef1ed;
-  --surface-warm: #fbfaf7;
-  --line: rgba(32, 40, 44, 0.12);
-  --line-strong: rgba(32, 40, 44, 0.2);
+  --surface-muted: #f0f0ee;
+  --surface-warm: #ffffff;
+  --line: rgba(32, 40, 44, 0.08);
+  --line-strong: rgba(32, 40, 44, 0.16);
   --accent: #a95040;
   --accent-dark: #843c31;
-  --accent-soft: rgba(169, 80, 64, 0.09);
-  --shadow: 0 14px 40px rgba(35, 45, 43, 0.06);
+  --accent-soft: rgba(169, 80, 64, 0.08);
+  --shadow: none;
 }
 
 * {
@@ -59,7 +59,7 @@ button:disabled {
   display: grid;
   height: 100dvh;
   min-height: 0;
-  grid-template-rows: 64px minmax(0, 1fr);
+  grid-template-rows: 56px minmax(0, 1fr);
   overflow: hidden;
 }
 
@@ -69,13 +69,12 @@ button:disabled {
   justify-content: space-between;
   padding: 0 max(28px, calc((100% - 1440px) / 2));
   border-bottom: 1px solid var(--line);
-  background: rgba(245, 246, 242, 0.96);
+  background: rgba(247, 247, 245, 0.96);
 }
 
 .brand-lockup,
 .settings-trigger,
 .avatar-panel-top,
-.avatar-live,
 .avatar-controls,
 .voice-state,
 .conversation-heading,
@@ -87,30 +86,17 @@ button:disabled {
 }
 
 .brand-lockup {
-  gap: 11px;
-}
-
-.brand-seal {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  place-items: center;
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  color: var(--accent-dark);
-  font-family: "STKaiti", "KaiTi", serif;
-  font-size: 17px;
+  gap: 0;
 }
 
 .brand-name {
   color: var(--ink);
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .settings-trigger {
-  gap: 7px;
   padding: 8px 0;
   color: var(--ink-soft);
   background: transparent;
@@ -119,12 +105,6 @@ button:disabled {
 
 .settings-trigger:hover {
   color: var(--accent-dark);
-}
-
-.settings-gear {
-  color: var(--accent);
-  font-size: 16px;
-  line-height: 1;
 }
 
 .workspace {
@@ -142,8 +122,8 @@ button:disabled {
 .response-panel {
   min-width: 0;
   min-height: 0;
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  border: 0;
+  border-radius: 18px;
   background: var(--surface);
 }
 
@@ -151,47 +131,22 @@ button:disabled {
   display: grid;
   overflow: hidden;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  background: var(--surface-muted);
+  background: #eceeeb;
 }
 
 .avatar-panel-top {
   justify-content: space-between;
-  padding: 20px 20px 0;
+  padding: 22px 24px 0;
 }
 
-.avatar-panel-top strong,
-.avatar-panel-top > div > span {
+.avatar-panel-top strong {
   display: block;
 }
 
 .avatar-panel-top strong {
   color: var(--ink);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.avatar-panel-top > div > span {
-  margin-top: 4px;
-  color: var(--muted-ink);
-  font-size: 11px;
-}
-
-.avatar-live {
-  gap: 7px;
-  max-width: 150px;
-  color: var(--muted-ink);
-  font-size: 10px;
-  text-align: right;
-}
-
-.avatar-live i,
-.caption-dot {
-  display: inline-block;
-  flex: 0 0 auto;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .avatar-stage {
@@ -249,25 +204,12 @@ button:disabled {
   line-height: 1.55;
 }
 
-.avatar-caption {
-  position: absolute;
-  right: 18px;
-  bottom: 56px;
-  left: 18px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--muted-ink);
-  font-size: 10px;
-}
-
 .avatar-controls {
   position: relative;
   z-index: 3;
   justify-content: space-between;
-  min-height: 53px;
-  padding: 0 20px 16px;
+  min-height: 48px;
+  padding: 0 24px 18px;
   color: var(--ink-soft);
   font-size: 11px;
 }
@@ -304,12 +246,12 @@ button:disabled {
   min-width: 0;
   min-height: 0;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 16px;
+  gap: 14px;
 }
 
 .conversation-heading {
   justify-content: space-between;
-  min-height: 48px;
+  min-height: 40px;
 }
 
 .eyebrow {
@@ -320,10 +262,10 @@ button:disabled {
 }
 
 .conversation-heading h1 {
-  margin: 7px 0 0;
+  margin: 0;
   color: var(--ink);
-  font-size: clamp(22px, 2.2vw, 32px);
-  font-weight: 650;
+  font-size: clamp(22px, 2vw, 28px);
+  font-weight: 600;
   letter-spacing: -0.02em;
 }
 
@@ -338,7 +280,7 @@ button:disabled {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: var(--shadow);
+  background: var(--surface);
 }
 
 .response-content {
@@ -348,7 +290,7 @@ button:disabled {
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 28px 32px 30px;
+  padding: 30px 34px 32px;
   scrollbar-color: rgba(32, 40, 44, 0.2) transparent;
   scrollbar-width: thin;
 }
@@ -395,16 +337,8 @@ button:disabled {
 .active-answer {
   max-width: 900px;
   margin: 4px 0 0;
-  padding-top: 15px;
+  padding-top: 8px;
   animation: answer-in 260ms ease both;
-}
-
-.answer-kicker {
-  display: block;
-  margin-bottom: 10px;
-  color: var(--accent);
-  font-size: 11px;
-  font-weight: 700;
 }
 
 .active-answer p {
@@ -434,7 +368,7 @@ button:disabled {
 .empty-answer p {
   margin: 0;
   color: var(--ink-soft);
-  font-size: clamp(20px, 2vw, 28px);
+  font-size: clamp(19px, 1.8vw, 25px);
   font-weight: 500;
 }
 
@@ -452,7 +386,7 @@ button:disabled {
 .composer-wrap {
   display: grid;
   min-width: 0;
-  gap: 10px;
+  gap: 8px;
 }
 
 .prompt-list {
@@ -472,11 +406,11 @@ button:disabled {
   max-width: 36ch;
   flex: 0 0 auto;
   overflow: hidden;
-  padding: 8px 11px;
-  border: 1px solid var(--line);
+  padding: 8px 12px;
+  border: 0;
   border-radius: 999px;
   color: var(--ink-soft);
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--surface-muted);
   font-size: 11px;
   overflow-wrap: anywhere;
   text-overflow: ellipsis;
@@ -485,23 +419,22 @@ button:disabled {
 }
 
 .prompt-chip:hover:not(:disabled) {
-  border-color: rgba(169, 80, 64, 0.38);
   color: var(--accent-dark);
-  background: var(--surface);
+  background: var(--accent-soft);
 }
 
 .composer {
   position: relative;
   overflow: hidden;
   border: 1px solid var(--line-strong);
-  border-radius: 14px;
-  background: var(--surface-warm);
+  border-radius: 16px;
+  background: var(--surface);
   transition: 160ms ease;
 }
 
 .composer:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: none;
 }
 
 .composer textarea {
