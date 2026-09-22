@@ -5,8 +5,8 @@ import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import type { CozeQuestion, CozeStreamEvent } from '../shared/types';
 import { ensureConfigFile, getRuntimeRoot, loadConfig, saveConfig } from './config';
+import { BailianClient } from './bailian/client';
 import { CozeClient } from './coze/client';
-import { createSpeechAdapter } from './speech';
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -21,8 +21,8 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 const assetMounts = new Map<string, string>();
-const speech = createSpeechAdapter();
 let mainWindow: BrowserWindow | null = null;
+let activeSpeech: { controller: AbortController } | null = null;
 let activeStream: {
   sender: Electron.WebContents;
   controller: AbortController;
@@ -32,6 +32,34 @@ let activeStream: {
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+async function runSpeechRequest<T>(request: (client: BailianClient, signal: AbortSignal, gender: 'female' | 'male') => Promise<T>): Promise<T> {
+  if (activeSpeech) {
+    throw new Error('已有一条语音请求正在处理');
+  }
+
+  const controller = new AbortController();
+  activeSpeech = { controller };
+  try {
+    const config = await loadConfig();
+    const client = new BailianClient(config.bailian);
+    return await request(client, controller.signal, config.avatar.gender);
+  } finally {
+    if (activeSpeech?.controller === controller) {
+      activeSpeech = null;
+    }
+  }
+}
+
+function getAudioBytes(value: unknown): Uint8Array {
+  if (value instanceof ArrayBuffer) {
+    return new Uint8Array(value);
+  }
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  }
+  throw new Error('录音数据不是有效的音频字节');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -95,10 +123,17 @@ function registerIpcHandlers(): void {
     if (typeof text !== 'string' || !text.trim()) {
       throw new Error('待播报文本不能为空');
     }
-    return speech.synthesize(text.trim());
+    return runSpeechRequest((client, signal, gender) => client.synthesize(text.trim(), gender, signal));
   });
-  ipcMain.handle('speech:listen', () => speech.listen());
-  ipcMain.handle('speech:stop', () => speech.stop());
+  ipcMain.handle('speech:transcribe', (_event, audio: unknown, mimeType: unknown) => {
+    if (typeof mimeType !== 'string' || !mimeType.trim()) {
+      throw new Error('录音格式不能为空');
+    }
+    return runSpeechRequest((client, signal) => client.transcribe(getAudioBytes(audio), mimeType, signal));
+  });
+  ipcMain.handle('speech:stop', () => {
+    activeSpeech?.controller.abort();
+  });
 
   ipcMain.handle('coze:start', async (event, question: CozeQuestion) => {
     if (activeStream) {

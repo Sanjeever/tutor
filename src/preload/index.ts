@@ -20,7 +20,7 @@ const api: TutorApi = {
       const bytes = (await ipcRenderer.invoke('speech:synthesize', text)) as Uint8Array;
       return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
     },
-    listen: () => ipcRenderer.invoke('speech:listen') as Promise<string>,
+    transcribe: (audio: ArrayBuffer, mimeType: string) => ipcRenderer.invoke('speech:transcribe', audio, mimeType) as Promise<string>,
     stop: () => ipcRenderer.invoke('speech:stop') as Promise<void>,
   },
   avatar: {

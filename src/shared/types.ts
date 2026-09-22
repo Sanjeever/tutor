@@ -46,7 +46,7 @@ export interface TutorApi {
   };
   speech: {
     synthesize(text: string): Promise<ArrayBuffer>;
-    listen(): Promise<string>;
+    transcribe(audio: ArrayBuffer, mimeType: string): Promise<string>;
     stop(): Promise<void>;
   };
   avatar: {
