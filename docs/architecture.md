@@ -6,16 +6,17 @@
 React Renderer
   ├─ 语文课堂工作台
   ├─ 流式回答展示
+  ├─ 浏览器麦克风录音与 WAV 标准化
   ├─ 音频播放与音量分析
   └─ Three.js 写实 3D 画布
           ↓ contextBridge / IPC
 Electron Main
   ├─ 配置文件读写（软件目录/config/config.json）
   ├─ Coze Chat V3 Stream
-  ├─ 系统语音适配器
+  ├─ 百炼 ASR/TTS 客户端
   └─ tutor-assets 本地资源协议
           ├─ Coze API
-          ├─ Windows Speech API / macOS Speech + say
+          ├─ 百炼 qwen-audio-3.0-asr-flash / qwen-audio-3.1-tts-flash
           └─ 软件目录/assets
 ```
 
@@ -38,12 +39,15 @@ Electron Main
 
 负责：
 
-- 系统 ASR
-- 将系统 TTS 生成的 WAV 音频返回渲染层播放
+- 渲染进程申请跨平台麦克风权限，使用 `MediaRecorder` 收集录音
+- 将录音解码并标准化为单声道 16 kHz WAV
+- 通过 `speech:transcribe` 将音频字节交给主进程百炼 ASR
+- 通过 `speech:synthesize` 请求百炼 TTS，并将完整 WAV 返回渲染层播放
+- 使用 `AbortController` 取消尚未完成的 ASR/TTS 请求
 
-根据系统平台选择实现。
+录音生命周期由渲染进程管理，主进程不直接访问系统麦克风。百炼 API Key 只由主进程读取并用于 HTTP 请求，渲染进程不直接访问百炼接口。
 
-Windows 使用 PowerShell 调用 `System.Speech`；macOS 使用 `say` 生成音频，并通过随应用分发的 Swift Speech API 脚本进行听写。业务层只依赖 `SpeechAdapter`，不感知平台细节。
+百炼实现位于 `src/main/bailian/client.ts`、`asr.ts` 和 `tts.ts`，不调用 Windows `System.Speech`、macOS `say` 或 Swift Speech 脚本。
 
 
 ### Avatar 模块
@@ -63,15 +67,17 @@ Windows 使用 PowerShell 调用 `System.Speech`；macOS 使用 `say` 生成音�
 
 ```
 用户
- ↓
-输入
+ ├─ 文本输入 ─────────────┐
+ └─ 麦克风录音 → WAV → 百炼 ASR ─┘
+                         ↓
+                      问题文本
  ↓
 Coze Stream
  ↓
 文本增量
  ↓
-TTS
- ↓（系统 TTS WAV）
+百炼 TTS
+ ↓（WAV）
 AudioBuffer + AnalyserNode
  ↓ 音量值
 Three.js 面部 Morph Target

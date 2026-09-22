@@ -35,10 +35,12 @@ https://docs.coze.cn/developer_guides_chat_v3
 
 语音：
 
-- Windows 使用系统自带语音识别和语音合成
-- macOS 使用系统自带语音识别和语音合成
+- ASR 使用阿里云百炼 `qwen-audio-3.0-asr-flash`
+- TTS 使用阿里云百炼 `qwen-audio-3.1-tts-flash`
+- 渲染进程通过浏览器麦克风能力录音并标准化为 WAV，主进程统一请求百炼
 
-禁止接入第三方收费 ASR/TTS 服务。
+- 不调用 Windows `System.Speech`、macOS `say` 或 macOS Swift Speech 脚本
+- 不使用第三方对象存储或后端服务上传录音
 
 
 数字人：
@@ -52,9 +54,11 @@ https://docs.coze.cn/developer_guides_chat_v3
 
 ```
 学生输入
+    ├── 文本输入 ─────────────┐
+    └── 浏览器录音 → 百炼 ASR ─┘
     |
     ↓
-文本输入 / 系统 ASR
+问题文本
     |
     ↓
 Coze Chat V3 Stream
@@ -63,7 +67,7 @@ Coze Chat V3 Stream
 实时文本回复
     |
     ↓
-系统 TTS
+百炼 TTS
     |
     ↓
 音频播放
@@ -88,6 +92,8 @@ config/
 
 - Coze Token
 - Coze Agent ID
+- 百炼 Workspace ID
+- 百炼 API Key
 - 用户 ID
 - 默认问题
 - 男/女教师 3D 模型路径
@@ -111,15 +117,17 @@ config/
 - 将 Windows/macOS 逻辑散落在业务代码
 
 
+跨平台录音使用浏览器标准 `MediaRecorder` 和 `getUserMedia`，录音在渲染进程完成，百炼 HTTP 请求只能在 Electron 主进程执行。
+
 系统能力必须抽象。
 
 示例：
 
 ```
-services/
- ├── speech.ts
- ├── windows-speech.ts
- └── macos-speech.ts
+src/main/bailian/
+ ├── client.ts
+ ├── asr.ts
+ └── tts.ts
 ```
 
 
