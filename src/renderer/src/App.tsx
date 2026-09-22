@@ -218,6 +218,7 @@ export default function App() {
   const responseContentRef = useRef<HTMLDivElement>(null);
   const resettingSessionRef = useRef(false);
   const recordingRef = useRef<ActiveRecording | null>(null);
+  const recordingStartingRef = useRef(false);
   const transcribingRef = useRef(false);
   const transcriptionIdRef = useRef(0);
   const speechRequestIdRef = useRef(0);
@@ -278,10 +279,15 @@ export default function App() {
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new Error('当前环境不支持麦克风录音');
     }
+    if (recordingStartingRef.current || recordingRef.current) {
+      return;
+    }
 
-    const mimeType = getRecordingMimeType();
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recordingStartingRef.current = true;
+    let stream: MediaStream | null = null;
     try {
+      const mimeType = getRecordingMimeType();
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream, { mimeType });
       let resolveRecording: (blob: Blob) => void = () => undefined;
       let rejectRecording: (reason?: unknown) => void = () => undefined;
@@ -304,7 +310,7 @@ export default function App() {
           return;
         }
         recordingRef.current = null;
-        stream.getTracks().forEach((track) => track.stop());
+        active.stream.getTracks().forEach((track) => track.stop());
         if (error) {
           active.reject(error);
         } else {
@@ -319,12 +325,19 @@ export default function App() {
       });
       recorder.addEventListener('error', () => finish(new Error('录音设备发生错误')));
       recorder.addEventListener('stop', () => finish());
-      recorder.start();
+      try {
+        recorder.start();
+      } catch (error) {
+        finish(error instanceof Error ? error : new Error('无法开始录音'));
+        throw error;
+      }
       setIsListening(true);
       setStatusText('正在听，请开始说话…');
     } catch (error) {
-      stream.getTracks().forEach((track) => track.stop());
+      stream?.getTracks().forEach((track) => track.stop());
       throw error;
+    } finally {
+      recordingStartingRef.current = false;
     }
   }, []);
 
@@ -589,6 +602,9 @@ export default function App() {
     }
 
     if (!recordingRef.current) {
+      if (recordingStartingRef.current) {
+        return;
+      }
       if (!config) {
         setNotice('配置还没有加载完成');
         return;
@@ -731,8 +747,8 @@ export default function App() {
           <div className="composer-wrap">
             {!history.length && !activeAnswer && exampleQuestions.length > 0 && (
               <div className="prompt-list" aria-label="示例问题">
-                {exampleQuestions.slice(0, 3).map((item, index) => (
-                  <button className="prompt-chip" key={`${item}-${index}`} onClick={() => void ask(item)} disabled={isThinking}>
+                  {exampleQuestions.slice(0, 3).map((item, index) => (
+                  <button className="prompt-chip" key={`${item}-${index}`} onClick={() => void ask(item)} disabled={isThinking || isListening}>
                     {item}
                   </button>
                 ))}
@@ -750,7 +766,7 @@ export default function App() {
                 }}
                 placeholder="输入一个语文问题"
                 rows={2}
-                disabled={isThinking}
+                disabled={isThinking || isListening}
               />
               <div className="composer-actions">
                 <button className={`mic-button ${isListening ? 'mic-button--active' : ''}`} onClick={() => void listen()} aria-label={isListening ? '停止听写' : '开始听写'}>
@@ -759,7 +775,7 @@ export default function App() {
                 {isThinking ? (
                   <button className="send-button send-button--stop" onClick={() => void window.tutor.coze.cancel()}>停止回答 <span>■</span></button>
                 ) : (
-                  <button className="send-button" onClick={() => void ask(question)} disabled={!question.trim()}>发送问题 <span>↗</span></button>
+                  <button className="send-button" onClick={() => void ask(question)} disabled={!question.trim() || isListening}>发送问题 <span>↗</span></button>
                 )}
               </div>
             </div>
