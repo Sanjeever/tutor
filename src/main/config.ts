@@ -8,6 +8,10 @@ const emptyConfig: AppConfig = {
     token: '',
     botId: '',
   },
+  bailian: {
+    workspaceId: '',
+    apiKey: '',
+  },
   userId: 'classroom-student',
   questions: [
     '《春》里“春风又绿江南岸”的“绿”用得好在哪里？',
@@ -44,15 +48,22 @@ function parseConfig(value: unknown): AppConfig {
   if (!source.coze || typeof source.coze !== 'object') {
     throw new Error('配置缺少 coze 字段');
   }
+  if (!source.bailian || typeof source.bailian !== 'object') {
+    throw new Error('配置缺少 bailian 字段（workspaceId、apiKey）');
+  }
   if (!source.avatar || typeof source.avatar !== 'object') {
     throw new Error('配置缺少 avatar 字段');
   }
 
   const coze = source.coze as Partial<AppConfig['coze']>;
+  const bailian = source.bailian as Partial<AppConfig['bailian']>;
   const avatar = source.avatar as Partial<AppConfig['avatar']>;
   const models = avatar.models as Partial<AppConfig['avatar']['models']> | undefined;
   if (typeof coze.token !== 'string' || typeof coze.botId !== 'string') {
     throw new Error('coze.token 和 coze.botId 必须是字符串');
+  }
+  if (typeof bailian.workspaceId !== 'string' || typeof bailian.apiKey !== 'string') {
+    throw new Error('bailian.workspaceId 和 bailian.apiKey 必须是字符串');
   }
   if (avatar.gender !== 'female' && avatar.gender !== 'male') {
     throw new Error('avatar.gender 必须是 female 或 male');
@@ -71,6 +82,10 @@ function parseConfig(value: unknown): AppConfig {
     coze: {
       token: coze.token.trim(),
       botId: coze.botId.trim(),
+    },
+    bailian: {
+      workspaceId: bailian.workspaceId.trim(),
+      apiKey: bailian.apiKey.trim(),
     },
     userId: source.userId.trim(),
     questions: source.questions.map((question) => question.trim()).filter(Boolean),

@@ -8,11 +8,17 @@ export interface AvatarConfig {
   };
 }
 
+export interface BailianConfig {
+  workspaceId: string;
+  apiKey: string;
+}
+
 export interface AppConfig {
   coze: {
     token: string;
     botId: string;
   };
+  bailian: BailianConfig;
   userId: string;
   questions: string[];
   avatar: AvatarConfig;
