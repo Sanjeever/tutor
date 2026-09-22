@@ -58,7 +58,10 @@
         "dmg",
         "zip"
       ],
-      "category": "public.app-category.education"
+      "category": "public.app-category.education",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "语文课堂数字人需要访问麦克风，将课堂提问转换为文字。"
+      }
     }
   }
 }

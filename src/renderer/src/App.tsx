@@ -1,10 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AppConfig, AvatarGender, CozeStreamEvent } from '../../shared/types';
+import { convertRecordingToWav, getRecordingMimeType } from './audio/recording';
 import ThreeDAvatar from './components/ThreeDAvatar';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+}
+
+interface ActiveRecording {
+  recorder: MediaRecorder;
+  stream: MediaStream;
+  chunks: Blob[];
+  promise: Promise<Blob>;
+  resolve: (blob: Blob) => void;
+  reject: (reason?: unknown) => void;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -13,6 +23,39 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function eventData(event: CozeStreamEvent): Record<string, unknown> {
   return isRecord(event.data) ? event.data : {};
+}
+
+function createAbortError(): Error {
+  const error = new Error('请求已取消');
+  error.name = 'AbortError';
+  return error;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && (error.name === 'AbortError' || error.message.includes('请求已取消'));
+}
+
+function formatMicrophoneError(error: unknown): string {
+  if (error instanceof DOMException) {
+    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+      return '麦克风权限被拒绝，请在系统设置中允许本应用访问麦克风';
+    }
+    if (error.name === 'NotFoundError') {
+      return '没有找到可用的麦克风';
+    }
+  }
+  return error instanceof Error ? error.message : '录音失败';
+}
+
+function getBailianConfigError(config: AppConfig): string {
+  const missing: string[] = [];
+  if (!config.bailian.workspaceId) {
+    missing.push('Workspace ID');
+  }
+  if (!config.bailian.apiKey) {
+    missing.push('API Key');
+  }
+  return missing.length > 0 ? `请先在设置中填写百炼 ${missing.join('、')}` : '';
 }
 
 interface SettingsDialogProps {
@@ -45,6 +88,10 @@ function SettingsDialog({ config, onClose, onSaved }: SettingsDialogProps) {
         coze: {
           token: draft.coze.token.trim(),
           botId: draft.coze.botId.trim(),
+        },
+        bailian: {
+          workspaceId: draft.bailian.workspaceId.trim(),
+          apiKey: draft.bailian.apiKey.trim(),
         },
       };
       const saved = await window.tutor.config.save(nextConfig);
@@ -85,6 +132,23 @@ function SettingsDialog({ config, onClose, onSaved }: SettingsDialogProps) {
               value={draft.coze.botId}
               placeholder="例如 734..."
               onChange={(event) => setDraft({ ...draft, coze: { ...draft.coze, botId: event.target.value } })}
+            />
+          </label>
+          <label>
+            <span>百炼 Workspace ID</span>
+            <input
+              value={draft.bailian.workspaceId}
+              placeholder="例如 llm-..."
+              onChange={(event) => setDraft({ ...draft, bailian: { ...draft.bailian, workspaceId: event.target.value } })}
+            />
+          </label>
+          <label>
+            <span>百炼 API Key</span>
+            <input
+              type="password"
+              value={draft.bailian.apiKey}
+              placeholder="sk-..."
+              onChange={(event) => setDraft({ ...draft, bailian: { ...draft.bailian, apiKey: event.target.value } })}
             />
           </label>
           <label>
@@ -153,6 +217,10 @@ export default function App() {
   const mouthOpenRef = useRef(0);
   const responseContentRef = useRef<HTMLDivElement>(null);
   const resettingSessionRef = useRef(false);
+  const recordingRef = useRef<ActiveRecording | null>(null);
+  const transcribingRef = useRef(false);
+  const transcriptionIdRef = useRef(0);
+  const speechRequestIdRef = useRef(0);
 
   useEffect(() => {
     const load = async () => {
@@ -168,6 +236,96 @@ export default function App() {
       }
     };
     void load();
+  }, []);
+
+  const stopRecording = useCallback((): Promise<Blob | null> => {
+    const active = recordingRef.current;
+    if (!active) {
+      return Promise.resolve(null);
+    }
+    if (active.recorder.state !== 'inactive') {
+      try {
+        active.recorder.stop();
+      } catch (error) {
+        if (recordingRef.current === active) {
+          recordingRef.current = null;
+          active.stream.getTracks().forEach((track) => track.stop());
+          active.reject(error);
+        }
+      }
+    }
+    return active.promise;
+  }, []);
+
+  const cancelRecording = useCallback(() => {
+    const active = recordingRef.current;
+    if (!active) {
+      return;
+    }
+    recordingRef.current = null;
+    active.stream.getTracks().forEach((track) => track.stop());
+    active.reject(createAbortError());
+    if (active.recorder.state !== 'inactive') {
+      try {
+        active.recorder.stop();
+      } catch {
+        // 录音器已经因设备停止而结束时无需再次处理。
+      }
+    }
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error('当前环境不支持麦克风录音');
+    }
+
+    const mimeType = getRecordingMimeType();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    try {
+      const recorder = new MediaRecorder(stream, { mimeType });
+      let resolveRecording: (blob: Blob) => void = () => undefined;
+      let rejectRecording: (reason?: unknown) => void = () => undefined;
+      const promise = new Promise<Blob>((resolve, reject) => {
+        resolveRecording = resolve;
+        rejectRecording = reject;
+      });
+      const active: ActiveRecording = {
+        recorder,
+        stream,
+        chunks: [],
+        promise,
+        resolve: resolveRecording,
+        reject: rejectRecording,
+      };
+      recordingRef.current = active;
+
+      const finish = (error?: Error) => {
+        if (recordingRef.current !== active) {
+          return;
+        }
+        recordingRef.current = null;
+        stream.getTracks().forEach((track) => track.stop());
+        if (error) {
+          active.reject(error);
+        } else {
+          active.resolve(new Blob(active.chunks, { type: recorder.mimeType || mimeType }));
+        }
+      };
+
+      recorder.addEventListener('dataavailable', (event) => {
+        if (event.data.size > 0) {
+          active.chunks.push(event.data);
+        }
+      });
+      recorder.addEventListener('error', () => finish(new Error('录音设备发生错误')));
+      recorder.addEventListener('stop', () => finish());
+      recorder.start();
+      setIsListening(true);
+      setStatusText('正在听，请开始说话…');
+    } catch (error) {
+      stream.getTracks().forEach((track) => track.stop());
+      throw error;
+    }
   }, []);
 
   const releaseAudio = useCallback(() => {
@@ -190,6 +348,7 @@ export default function App() {
   }, [releaseAudio]);
 
   const stopAudio = useCallback(() => {
+    speechRequestIdRef.current += 1;
     const source = sourceRef.current;
     if (source) {
       source.onended = null;
@@ -208,13 +367,23 @@ export default function App() {
     setStatusText('等待提问');
   }, [stopAudio]);
 
+  useEffect(() => () => {
+    transcriptionIdRef.current += 1;
+    cancelRecording();
+    stopAudio();
+  }, [cancelRecording, stopAudio]);
+
   const playAnswer = useCallback(async (text: string) => {
     if (!text.trim()) {
       return;
     }
     stopAudio();
+    const requestId = speechRequestIdRef.current;
     try {
       const bytes = await window.tutor.speech.synthesize(text);
+      if (requestId !== speechRequestIdRef.current) {
+        return;
+      }
       const context = audioContextRef.current ?? new AudioContext();
       audioContextRef.current = context;
       await context.resume();
@@ -252,6 +421,9 @@ export default function App() {
       source.start();
       measure();
     } catch (error) {
+      if (requestId !== speechRequestIdRef.current || isAbortError(error)) {
+        return;
+      }
       setNotice(error instanceof Error ? `语音播放失败：${error.message}` : '语音播放失败');
       finishAudio();
     }
@@ -340,8 +512,11 @@ export default function App() {
 
   const resetSession = async () => {
     resettingSessionRef.current = true;
+    transcriptionIdRef.current += 1;
+    transcribingRef.current = false;
     setStatusText('正在重置会话…');
     setNotice('');
+    cancelRecording();
     stopAudio();
     setIsListening(false);
     if (isThinking) {
@@ -373,6 +548,12 @@ export default function App() {
       setNotice('先完成 Coze 和课堂用户配置，再开始提问');
       return;
     }
+    const bailianConfigError = getBailianConfigError(config);
+    if (bailianConfigError) {
+      setSettingsOpen(true);
+      setNotice(bailianConfigError);
+      return;
+    }
 
     resettingSessionRef.current = false;
     stopAudio();
@@ -398,25 +579,69 @@ export default function App() {
   };
 
   const listen = async () => {
-    if (isListening) {
+    if (transcribingRef.current) {
+      transcriptionIdRef.current += 1;
       await window.tutor.speech.stop();
+      transcribingRef.current = false;
       setIsListening(false);
       setStatusText('已停止听写');
       return;
     }
-    stopAudio();
-    setNotice('');
-    setIsListening(true);
-    setStatusText('正在听，请开始说话…');
+
+    if (!recordingRef.current) {
+      if (!config) {
+        setNotice('配置还没有加载完成');
+        return;
+      }
+      const bailianConfigError = getBailianConfigError(config);
+      if (bailianConfigError) {
+        setSettingsOpen(true);
+        setNotice(bailianConfigError);
+        return;
+      }
+      resettingSessionRef.current = false;
+      stopAudio();
+      setNotice('');
+      try {
+        await startRecording();
+      } catch (error) {
+        setIsListening(false);
+        setNotice(formatMicrophoneError(error));
+        setStatusText('等待提问');
+      }
+      return;
+    }
+
+    setStatusText('正在处理录音…');
+    const transcriptionId = ++transcriptionIdRef.current;
+    transcribingRef.current = true;
     try {
-      const text = await window.tutor.speech.listen();
+      const recording = await stopRecording();
+      if (!recording || transcriptionId !== transcriptionIdRef.current || resettingSessionRef.current) {
+        return;
+      }
+      setStatusText('正在整理录音…');
+      const wav = await convertRecordingToWav(recording);
+      if (transcriptionId !== transcriptionIdRef.current || resettingSessionRef.current) {
+        return;
+      }
+      setStatusText('正在识别语音…');
+      const text = await window.tutor.speech.transcribe(wav, 'audio/wav');
+      if (transcriptionId !== transcriptionIdRef.current || resettingSessionRef.current) {
+        return;
+      }
       setQuestion((current) => `${current}${current ? ' ' : ''}${text}`);
       setStatusText('听写完成，可以检查后发送');
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : '系统语音识别失败');
-      setStatusText('等待提问');
+      if (!isAbortError(error) && transcriptionId === transcriptionIdRef.current && !resettingSessionRef.current) {
+        setNotice(error instanceof Error ? error.message : '语音识别失败');
+        setStatusText('等待提问');
+      }
     } finally {
-      setIsListening(false);
+      if (transcriptionId === transcriptionIdRef.current) {
+        transcribingRef.current = false;
+        setIsListening(false);
+      }
     }
   };
 

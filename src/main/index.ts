@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, net, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, net, protocol, session } from 'electron';
 import { access } from 'node:fs/promises';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -250,10 +250,17 @@ function createWindow(): void {
   }
 }
 
+function registerPermissionHandlers(): void {
+  session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+    callback(permission === 'media' && webContents === mainWindow?.webContents);
+  });
+}
+
 void app.whenReady().then(async () => {
   await ensureConfigFile();
   await registerAssetProtocol();
   registerIpcHandlers();
+  registerPermissionHandlers();
   Menu.setApplicationMenu(null);
   createWindow();
 
